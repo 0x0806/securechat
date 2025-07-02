@@ -1,1 +1,167 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>SecureChat - Anonymous Real-time Chat</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-shield-alt"></i>
+                <span>SecureChat</span>
+            </div>
+            <div class="status-indicator" id="connectionStatus">
+                <i class="fas fa-circle"></i>
+                <span>Connected</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Welcome Screen -->
+            <div class="welcome-screen" id="welcomeScreen">
+                <div class="welcome-card">
+                    <div class="welcome-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h1>Welcome to SecureChat</h1>
+                    <p>Connect with strangers around the world anonymously and securely</p>
+                    <div class="features">
+                        <div class="feature">
+                            <i class="fas fa-user-secret"></i>
+                            <span>100% Anonymous</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-video"></i>
+                            <span>Video & Voice Calls</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-lock"></i>
+                            <span>Secure & Private</span>
+                        </div>
+                    </div>
+                    <button class="start-chat-btn" id="startChatBtn">
+                        <i class="fas fa-play"></i>
+                        Start Chatting
+                    </button>
+                </div>
+            </div>
+
+            <!-- Waiting Screen -->
+            <div class="waiting-screen hidden" id="waitingScreen">
+                <div class="waiting-card">
+                    <div class="spinner">
+                        <div class="spinner-inner"></div>
+                    </div>
+                    <h2>Finding a chat partner...</h2>
+                    <p>Please wait while we connect you with someone</p>
+                    <button class="cancel-btn" id="cancelWaitBtn">
+                        <i class="fas fa-times"></i>
+                        Cancel
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chat Screen -->
+            <div class="chat-screen hidden" id="chatScreen">
+                <div class="chat-header">
+                    <div class="partner-info">
+                        <div class="partner-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="partner-details">
+                            <span class="partner-name">Anonymous User</span>
+                            <span class="partner-status" id="partnerStatus">Online</span>
+                        </div>
+                    </div>
+                    <div class="chat-controls">
+                        <button class="control-btn video-btn" id="videoCallBtn" title="Video Call">
+                            <i class="fas fa-video"></i>
+                        </button>
+                        <button class="control-btn audio-btn" id="audioCallBtn" title="Voice Call">
+                            <i class="fas fa-phone"></i>
+                        </button>
+                        <button class="control-btn skip-btn" id="skipBtn" title="Skip Partner">
+                            <i class="fas fa-forward"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    <div class="system-message">
+                        <i class="fas fa-info-circle"></i>
+                        <span>You're now connected with a stranger. Say hello!</span>
+                    </div>
+                </div>
+
+                <div class="video-container hidden" id="videoContainer">
+                    <video id="localVideo" muted autoplay playsinline></video>
+                    <video id="remoteVideo" autoplay playsinline></video>
+                    <div class="video-controls">
+                        <button class="video-control-btn" id="toggleVideoBtn">
+                            <i class="fas fa-video"></i>
+                        </button>
+                        <button class="video-control-btn" id="toggleAudioBtn">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <button class="video-control-btn end-call-btn" id="endCallBtn">
+                            <i class="fas fa-phone-slash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="typing-indicator hidden" id="typingIndicator">
+                    <div class="typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <span>Partner is typing...</span>
+                </div>
+
+                <div class="message-input-container">
+                    <div class="message-input">
+                        <input type="text" id="messageInput" placeholder="Type your message..." maxlength="500">
+                        <button class="send-btn" id="sendBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Notifications -->
+        <div class="notification-container" id="notificationContainer"></div>
+
+        <!-- Call Request Modal -->
+        <div class="modal hidden" id="callRequestModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <i class="fas fa-video"></i>
+                    <h3>Incoming Video Call</h3>
+                </div>
+                <p>Your chat partner wants to start a video call</p>
+                <div class="modal-actions">
+                    <button class="modal-btn decline-btn" id="declineCallBtn">
+                        <i class="fas fa-times"></i>
+                        Decline
+                    </button>
+                    <button class="modal-btn accept-btn" id="acceptCallBtn">
+                        <i class="fas fa-check"></i>
+                        Accept
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
