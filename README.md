@@ -205,7 +205,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👨‍💻 Author & Copyright
 
 **Developed by:** [0x0806](https://github.com/0x0806)  
-**Copyright © 2024 0x0806. All rights reserved.**
+**Copyright © 2025 0x0806. All rights reserved.**
 
 ---
 
