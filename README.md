@@ -85,19 +85,7 @@ npm start
 3. Click "Run" button
 4. Your SecureChat instance is live!
 
-## 🏗️ Project Structure
 
-```
-securechat/
-├── 📁 public/              # Frontend assets
-│   ├── 🎨 styles.css       # Glassmorphism UI styles
-│   ├── ⚡ app.js           # Client-side application logic
-│   └── 📄 index.html       # Main HTML structure
-├── 🔧 index.js             # Express server & Socket.IO setup
-├── 📦 package.json         # Dependencies & scripts
-├── 🚀 .replit              # Replit configuration
-└── 📚 README.md            # Project documentation
-```
 
 ## 🔧 Configuration
 
