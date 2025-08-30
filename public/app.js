@@ -162,23 +162,32 @@ class SecureChat {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' }
-            ]
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' }
+            ],
+            iceCandidatePoolSize: 10
         };
         
         this.peerConnection = new RTCPeerConnection(configuration);
         
         this.peerConnection.onicecandidate = (event) => {
-            if (event.candidate && this.partnerId) {
-                this.socket.emit('ice-candidate', { candidate: event.candidate });
+            if (event.candidate && this.partnerId && this.roomId) {
+                console.log('Sending ICE candidate:', event.candidate);
+                this.socket.emit('ice-candidate', { 
+                    candidate: event.candidate,
+                    roomId: this.roomId 
+                });
             }
         };
         
         this.peerConnection.ontrack = (event) => {
-            console.log('Remote stream received');
-            this.remoteStream = event.streams[0];
-            this.remoteVideo.srcObject = this.remoteStream;
-            this.showNotification('Video connected!', 'success');
+            console.log('Remote stream received:', event.streams);
+            if (event.streams && event.streams[0]) {
+                this.remoteStream = event.streams[0];
+                this.remoteVideo.srcObject = this.remoteStream;
+                this.showNotification('Video connected!', 'success');
+            }
         };
         
         this.peerConnection.onconnectionstatechange = () => {
@@ -188,7 +197,12 @@ class SecureChat {
                     this.showNotification('Video call connected', 'success');
                     break;
                 case 'disconnected':
+                    console.log('Peer connection disconnected');
+                    break;
                 case 'failed':
+                    console.log('Peer connection failed, attempting restart');
+                    this.restartIce();
+                    break;
                 case 'closed':
                     if (this.isInCall) {
                         this.endCall();
@@ -204,10 +218,63 @@ class SecureChat {
         
         this.peerConnection.oniceconnectionstatechange = () => {
             console.log('ICE connection state:', this.peerConnection.iceConnectionState);
-            if (this.peerConnection.iceConnectionState === 'failed') {
-                this.showNotification('Connection failed, retrying...', 'warning');
+            switch(this.peerConnection.iceConnectionState) {
+                case 'failed':
+                    console.log('ICE connection failed, restarting ICE');
+                    this.restartIce();
+                    break;
+                case 'disconnected':
+                    console.log('ICE connection disconnected');
+                    break;
+                case 'connected':
+                    console.log('ICE connection established');
+                    break;
             }
         };
+        
+        this.peerConnection.onnegotiationneeded = async () => {
+            console.log('Negotiation needed');
+            if (this.peerConnection.signalingState !== 'stable') {
+                console.log('Signaling state not stable, skipping negotiation');
+                return;
+            }
+            try {
+                await this.createAndSendOffer();
+            } catch (error) {
+                console.error('Error during negotiation:', error);
+            }
+        };
+    }
+    
+    async restartIce() {
+        if (this.peerConnection && this.peerConnection.connectionState !== 'closed') {
+            try {
+                console.log('Restarting ICE connection');
+                await this.peerConnection.restartIce();
+            } catch (error) {
+                console.error('Error restarting ICE:', error);
+                this.showNotification('Connection issue, retrying...', 'warning');
+            }
+        }
+    }
+    
+    async createAndSendOffer() {
+        try {
+            const offer = await this.peerConnection.createOffer({
+                offerToReceiveVideo: true,
+                offerToReceiveAudio: true
+            });
+            
+            await this.peerConnection.setLocalDescription(offer);
+            console.log('Sending offer');
+            this.socket.emit('offer', { 
+                offer: offer,
+                roomId: this.roomId 
+            });
+        } catch (error) {
+            console.error('Error creating/sending offer:', error);
+            this.showNotification('Failed to create call offer', 'error');
+        }
     }
     
     startChat() {
@@ -343,8 +410,17 @@ class SecureChat {
         }
         
         try {
-            // Add tracks to peer connection
+            // Clear existing tracks first
+            const senders = this.peerConnection.getSenders();
+            senders.forEach(sender => {
+                if (sender.track) {
+                    this.peerConnection.removeTrack(sender);
+                }
+            });
+            
+            // Add new tracks to peer connection
             this.localStream.getTracks().forEach(track => {
+                console.log('Adding track:', track.kind);
                 this.peerConnection.addTrack(track, this.localStream);
             });
             
@@ -352,14 +428,8 @@ class SecureChat {
             this.videoContainer.classList.remove('hidden');
             this.isInCall = true;
             
-            // Always create offer when starting call
-            const offer = await this.peerConnection.createOffer({
-                offerToReceiveVideo: true,
-                offerToReceiveAudio: true
-            });
-            
-            await this.peerConnection.setLocalDescription(offer);
-            this.socket.emit('offer', { offer });
+            // Create and send offer
+            await this.createAndSendOffer();
             
             this.showNotification('Call started', 'success');
         } catch (error) {
@@ -371,23 +441,52 @@ class SecureChat {
     
     async handleOffer(offer) {
         try {
-            console.log('Handling offer');
+            console.log('Handling offer, current signaling state:', this.peerConnection.signalingState);
+            
+            if (this.peerConnection.signalingState !== 'stable') {
+                console.log('Signaling state not stable, waiting...');
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
             await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+            console.log('Remote description set successfully');
+            
+            // Process any queued ICE candidates
+            await this.processQueuedCandidates();
             
             if (this.localStream) {
+                // Clear existing tracks first
+                const senders = this.peerConnection.getSenders();
+                senders.forEach(sender => {
+                    if (sender.track) {
+                        this.peerConnection.removeTrack(sender);
+                    }
+                });
+                
+                // Add local stream tracks
                 this.localStream.getTracks().forEach(track => {
+                    console.log('Adding track to answer:', track.kind);
                     this.peerConnection.addTrack(track, this.localStream);
                 });
+                
                 this.localVideo.srcObject = this.localStream;
                 this.videoContainer.classList.remove('hidden');
                 this.isInCall = true;
             }
             
-            const answer = await this.peerConnection.createAnswer();
-            await this.peerConnection.setLocalDescription(answer);
-            this.socket.emit('answer', { answer });
+            const answer = await this.peerConnection.createAnswer({
+                offerToReceiveVideo: true,
+                offerToReceiveAudio: true
+            });
             
-            console.log('Answer sent');
+            await this.peerConnection.setLocalDescription(answer);
+            console.log('Sending answer');
+            this.socket.emit('answer', { 
+                answer: answer,
+                roomId: this.roomId 
+            });
+            
+            console.log('Answer sent successfully');
         } catch (error) {
             console.error('Error handling offer:', error);
             this.showNotification('Failed to answer call', 'error');
@@ -396,9 +495,17 @@ class SecureChat {
     
     async handleAnswer(answer) {
         try {
-            console.log('Handling answer');
-            await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-            console.log('Answer processed');
+            console.log('Handling answer, current signaling state:', this.peerConnection.signalingState);
+            
+            if (this.peerConnection.signalingState === 'have-local-offer') {
+                await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+                console.log('Answer processed successfully');
+                
+                // Process any queued ICE candidates
+                await this.processQueuedCandidates();
+            } else {
+                console.log('Unexpected signaling state for answer:', this.peerConnection.signalingState);
+            }
         } catch (error) {
             console.error('Error handling answer:', error);
             this.showNotification('Call connection failed', 'error');
@@ -407,17 +514,41 @@ class SecureChat {
     
     async handleIceCandidate(candidate) {
         try {
-            if (candidate) {
+            if (candidate && this.peerConnection.remoteDescription) {
                 await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-                console.log('ICE candidate added');
+                console.log('ICE candidate added successfully');
+            } else if (candidate) {
+                console.log('Queuing ICE candidate - no remote description yet');
+                // Queue the candidate for later if remote description isn't set
+                if (!this.queuedCandidates) {
+                    this.queuedCandidates = [];
+                }
+                this.queuedCandidates.push(candidate);
             }
         } catch (error) {
             console.error('Error adding ICE candidate:', error);
         }
     }
     
+    async processQueuedCandidates() {
+        if (this.queuedCandidates && this.queuedCandidates.length > 0) {
+            console.log('Processing queued ICE candidates:', this.queuedCandidates.length);
+            for (const candidate of this.queuedCandidates) {
+                try {
+                    await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                    console.log('Queued ICE candidate added');
+                } catch (error) {
+                    console.error('Error adding queued ICE candidate:', error);
+                }
+            }
+            this.queuedCandidates = [];
+        }
+    }
+    
     endCall() {
         try {
+            console.log('Ending call...');
+            
             if (this.localStream) {
                 this.localStream.getTracks().forEach(track => {
                     track.stop();
@@ -432,9 +563,20 @@ class SecureChat {
             }
             
             if (this.peerConnection) {
+                // Clear all senders
+                const senders = this.peerConnection.getSenders();
+                senders.forEach(sender => {
+                    if (sender.track) {
+                        this.peerConnection.removeTrack(sender);
+                    }
+                });
+                
                 this.peerConnection.close();
                 this.setupRTC(); // Reset connection
             }
+            
+            // Clear queued candidates
+            this.queuedCandidates = [];
             
             // Reset video elements
             this.localVideo.srcObject = null;
