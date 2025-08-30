@@ -89,24 +89,39 @@ io.on('connection', (socket) => {
   socket.on('offer', (data) => {
     const chat = activeChats.get(socket.id);
     if (chat && data.offer) {
-      console.log('Forwarding offer from', socket.id, 'to', chat.partnerId);
-      io.to(chat.partnerId).emit('offer', { offer: data.offer, senderId: socket.id });
+      console.log('Forwarding offer from', socket.id, 'to', chat.partnerId, 'in room', chat.roomId);
+      // Validate that the room ID matches
+      if (data.roomId && data.roomId === chat.roomId) {
+        io.to(chat.partnerId).emit('offer', { offer: data.offer, senderId: socket.id, roomId: chat.roomId });
+      } else {
+        console.log('Room ID mismatch for offer');
+      }
     }
   });
   
   socket.on('answer', (data) => {
     const chat = activeChats.get(socket.id);
     if (chat && data.answer) {
-      console.log('Forwarding answer from', socket.id, 'to', chat.partnerId);
-      io.to(chat.partnerId).emit('answer', { answer: data.answer, senderId: socket.id });
+      console.log('Forwarding answer from', socket.id, 'to', chat.partnerId, 'in room', chat.roomId);
+      // Validate that the room ID matches
+      if (data.roomId && data.roomId === chat.roomId) {
+        io.to(chat.partnerId).emit('answer', { answer: data.answer, senderId: socket.id, roomId: chat.roomId });
+      } else {
+        console.log('Room ID mismatch for answer');
+      }
     }
   });
   
   socket.on('ice-candidate', (data) => {
     const chat = activeChats.get(socket.id);
     if (chat && data.candidate) {
-      console.log('Forwarding ICE candidate from', socket.id, 'to', chat.partnerId);
-      io.to(chat.partnerId).emit('ice-candidate', { candidate: data.candidate, senderId: socket.id });
+      console.log('Forwarding ICE candidate from', socket.id, 'to', chat.partnerId, 'in room', chat.roomId);
+      // Validate that the room ID matches
+      if (data.roomId && data.roomId === chat.roomId) {
+        io.to(chat.partnerId).emit('ice-candidate', { candidate: data.candidate, senderId: socket.id, roomId: chat.roomId });
+      } else {
+        console.log('Room ID mismatch for ICE candidate');
+      }
     }
   });
   
