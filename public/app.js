@@ -29,8 +29,7 @@ class SecureChat {
         this.cancelWaitBtn = document.getElementById('cancelWaitBtn');
         this.sendBtn = document.getElementById('sendBtn');
         this.skipBtn = document.getElementById('skipBtn');
-        this.videoCallBtn = document.getElementById('videoCallBtn');
-        this.audioCallBtn = document.getElementById('audioCallBtn');
+        this.callBtn = document.getElementById('callBtn');
         
         // Video elements
         this.localVideo = document.getElementById('localVideo');
@@ -61,8 +60,7 @@ class SecureChat {
         this.cancelWaitBtn.addEventListener('click', () => this.cancelWait());
         this.sendBtn.addEventListener('click', () => this.sendMessage());
         this.skipBtn.addEventListener('click', () => this.skipPartner());
-        this.videoCallBtn.addEventListener('click', () => this.initiateVideoCall());
-        this.audioCallBtn.addEventListener('click', () => this.initiateAudioCall());
+        this.callBtn.addEventListener('click', () => this.initiateCall());
         
         this.endCallBtn.addEventListener('click', () => this.endCall());
         this.toggleVideoBtn.addEventListener('click', () => this.toggleVideo());
@@ -131,7 +129,7 @@ class SecureChat {
         
         this.socket.on('video-call-response', (data) => {
             if (data.accepted) {
-                this.startVideoCall();
+                this.startCall();
             } else {
                 this.showNotification('Call declined - Continue texting', 'warning');
                 // Focus back on text input when call is declined
@@ -158,6 +156,11 @@ class SecureChat {
     }
     
     setupRTC() {
+        // Close existing connection if it exists
+        if (this.peerConnection) {
+            this.peerConnection.close();
+        }
+        
         const configuration = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
@@ -170,6 +173,7 @@ class SecureChat {
         };
         
         this.peerConnection = new RTCPeerConnection(configuration);
+        this.queuedCandidates = [];
         
         this.peerConnection.onicecandidate = (event) => {
             if (event.candidate && this.partnerId && this.roomId) {
@@ -260,6 +264,11 @@ class SecureChat {
     
     async createAndSendOffer() {
         try {
+            if (this.peerConnection.signalingState !== 'stable') {
+                console.log('Peer connection not stable, skipping offer creation');
+                return;
+            }
+            
             const offer = await this.peerConnection.createOffer({
                 offerToReceiveVideo: true,
                 offerToReceiveAudio: true
@@ -274,6 +283,7 @@ class SecureChat {
         } catch (error) {
             console.error('Error creating/sending offer:', error);
             this.showNotification('Failed to create call offer', 'error');
+            this.endCall();
         }
     }
     
@@ -317,7 +327,7 @@ class SecureChat {
         this.showNotification('Finding a new partner...', 'info');
     }
     
-    async initiateVideoCall() {
+    async initiateCall() {
         if (!this.partnerId) {
             this.showNotification('No partner connected', 'warning');
             return;
@@ -329,41 +339,23 @@ class SecureChat {
         }
         
         try {
-            this.localStream = await navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: true
-            });
+            // Always try to get both video and audio, fallback to audio only if video fails
+            let constraints = { video: true, audio: true };
+            
+            try {
+                this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                this.showNotification('Starting video call...', 'info');
+            } catch (videoError) {
+                console.log('Video access failed, trying audio only:', videoError);
+                constraints = { video: false, audio: true };
+                this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                this.showNotification('Starting voice call...', 'info');
+            }
             
             this.socket.emit('video-call-request');
-            this.showNotification('Calling partner...', 'info');
         } catch (error) {
             console.error('Media access error:', error);
             this.showNotification('Camera/microphone access denied', 'error');
-        }
-    }
-    
-    async initiateAudioCall() {
-        if (!this.partnerId) {
-            this.showNotification('No partner connected', 'warning');
-            return;
-        }
-        
-        if (this.isInCall) {
-            this.showNotification('Already in a call', 'warning');
-            return;
-        }
-        
-        try {
-            this.localStream = await navigator.mediaDevices.getUserMedia({
-                video: false,
-                audio: true
-            });
-            
-            this.socket.emit('video-call-request');
-            this.showNotification('Starting voice call...', 'info');
-        } catch (error) {
-            console.error('Microphone access error:', error);
-            this.showNotification('Microphone access denied', 'error');
         }
     }
     
@@ -380,13 +372,20 @@ class SecureChat {
         this.socket.emit('video-call-response', { accepted: true });
         
         try {
-            this.localStream = await navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: true
-            });
+            // Try video + audio first, fallback to audio only
+            let constraints = { video: true, audio: true };
             
-            this.startVideoCall();
+            try {
+                this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            } catch (videoError) {
+                console.log('Video access failed, trying audio only:', videoError);
+                constraints = { video: false, audio: true };
+                this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            }
+            
+            this.startCall();
         } catch (error) {
+            console.error('Media access error:', error);
             this.showNotification('Camera/microphone access denied', 'error');
         }
     }
@@ -403,37 +402,51 @@ class SecureChat {
         }
     }
     
-    async startVideoCall() {
+    async startCall() {
         if (!this.localStream) {
             this.showNotification('No local stream available', 'error');
             return;
         }
         
         try {
-            // Clear existing tracks first
+            // Ensure peer connection is in stable state
+            if (this.peerConnection.signalingState !== 'stable') {
+                console.log('Resetting peer connection due to unstable state');
+                this.setupRTC();
+            }
+            
+            // Clear existing tracks first to prevent duplicates
             const senders = this.peerConnection.getSenders();
-            senders.forEach(sender => {
+            for (const sender of senders) {
                 if (sender.track) {
-                    this.peerConnection.removeTrack(sender);
+                    await this.peerConnection.removeTrack(sender);
                 }
-            });
+            }
+            
+            // Wait a bit for cleanup
+            await new Promise(resolve => setTimeout(resolve, 100));
             
             // Add new tracks to peer connection
             this.localStream.getTracks().forEach(track => {
-                console.log('Adding track:', track.kind);
+                console.log('Adding track:', track.kind, track.enabled);
                 this.peerConnection.addTrack(track, this.localStream);
             });
             
+            // Set up local video display
             this.localVideo.srcObject = this.localStream;
             this.videoContainer.classList.remove('hidden');
             this.isInCall = true;
             
-            // Create and send offer
-            await this.createAndSendOffer();
+            // Update button states based on available tracks
+            const hasVideo = this.localStream.getVideoTracks().length > 0;
+            const hasAudio = this.localStream.getAudioTracks().length > 0;
             
-            this.showNotification('Call started', 'success');
+            this.toggleVideoBtn.style.display = hasVideo ? 'flex' : 'none';
+            this.toggleAudioBtn.style.display = hasAudio ? 'flex' : 'none';
+            
+            this.showNotification(`${hasVideo ? 'Video' : 'Voice'} call started`, 'success');
         } catch (error) {
-            console.error('Error starting video call:', error);
+            console.error('Error starting call:', error);
             this.showNotification('Failed to start call', 'error');
             this.endCall();
         }
@@ -443,9 +456,11 @@ class SecureChat {
         try {
             console.log('Handling offer, current signaling state:', this.peerConnection.signalingState);
             
+            // Reset peer connection if in bad state
             if (this.peerConnection.signalingState !== 'stable') {
-                console.log('Signaling state not stable, waiting...');
-                await new Promise(resolve => setTimeout(resolve, 100));
+                console.log('Resetting peer connection due to unstable state');
+                this.setupRTC();
+                await new Promise(resolve => setTimeout(resolve, 200));
             }
             
             await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
@@ -455,23 +470,33 @@ class SecureChat {
             await this.processQueuedCandidates();
             
             if (this.localStream) {
-                // Clear existing tracks first
+                // Clear existing tracks first to prevent duplicates
                 const senders = this.peerConnection.getSenders();
-                senders.forEach(sender => {
+                for (const sender of senders) {
                     if (sender.track) {
-                        this.peerConnection.removeTrack(sender);
+                        await this.peerConnection.removeTrack(sender);
                     }
-                });
+                }
+                
+                // Wait for cleanup
+                await new Promise(resolve => setTimeout(resolve, 100));
                 
                 // Add local stream tracks
                 this.localStream.getTracks().forEach(track => {
-                    console.log('Adding track to answer:', track.kind);
+                    console.log('Adding track to answer:', track.kind, track.enabled);
                     this.peerConnection.addTrack(track, this.localStream);
                 });
                 
                 this.localVideo.srcObject = this.localStream;
                 this.videoContainer.classList.remove('hidden');
                 this.isInCall = true;
+                
+                // Update button states
+                const hasVideo = this.localStream.getVideoTracks().length > 0;
+                const hasAudio = this.localStream.getAudioTracks().length > 0;
+                
+                this.toggleVideoBtn.style.display = hasVideo ? 'flex' : 'none';
+                this.toggleAudioBtn.style.display = hasAudio ? 'flex' : 'none';
             }
             
             const answer = await this.peerConnection.createAnswer({
@@ -490,6 +515,7 @@ class SecureChat {
         } catch (error) {
             console.error('Error handling offer:', error);
             this.showNotification('Failed to answer call', 'error');
+            this.endCall();
         }
     }
     
@@ -549,6 +575,7 @@ class SecureChat {
         try {
             console.log('Ending call...');
             
+            // Stop all tracks first
             if (this.localStream) {
                 this.localStream.getTracks().forEach(track => {
                     track.stop();
@@ -562,30 +589,39 @@ class SecureChat {
                 this.remoteStream = null;
             }
             
-            if (this.peerConnection) {
-                // Clear all senders
-                const senders = this.peerConnection.getSenders();
-                senders.forEach(sender => {
-                    if (sender.track) {
-                        this.peerConnection.removeTrack(sender);
+            // Clean up peer connection
+            if (this.peerConnection && this.peerConnection.connectionState !== 'closed') {
+                try {
+                    // Remove all senders safely
+                    const senders = this.peerConnection.getSenders();
+                    for (const sender of senders) {
+                        if (sender.track) {
+                            this.peerConnection.removeTrack(sender);
+                        }
                     }
-                });
-                
-                this.peerConnection.close();
-                this.setupRTC(); // Reset connection
+                    
+                    this.peerConnection.close();
+                } catch (pcError) {
+                    console.log('Error closing peer connection:', pcError);
+                }
             }
+            
+            // Reset connection after cleanup
+            setTimeout(() => {
+                this.setupRTC();
+            }, 100);
             
             // Clear queued candidates
             this.queuedCandidates = [];
             
             // Reset video elements
-            this.localVideo.srcObject = null;
-            this.remoteVideo.srcObject = null;
-            this.videoContainer.classList.add('hidden');
+            if (this.localVideo) this.localVideo.srcObject = null;
+            if (this.remoteVideo) this.remoteVideo.srcObject = null;
+            if (this.videoContainer) this.videoContainer.classList.add('hidden');
             
             // Reset button states
-            this.toggleVideoBtn.innerHTML = '<i class="fas fa-video"></i>';
-            this.toggleAudioBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            if (this.toggleVideoBtn) this.toggleVideoBtn.innerHTML = '<i class="fas fa-video"></i>';
+            if (this.toggleAudioBtn) this.toggleAudioBtn.innerHTML = '<i class="fas fa-microphone"></i>';
             
             this.isInCall = false;
             
@@ -593,7 +629,7 @@ class SecureChat {
             if (this.currentScreen === 'chat' && this.messageInput) {
                 setTimeout(() => {
                     this.messageInput.focus();
-                }, 100);
+                }, 200);
             }
             
             this.showNotification('Call ended - Continue texting', 'info');
