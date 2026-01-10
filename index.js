@@ -47,8 +47,8 @@ io.on('connection', (socket) => {
       activeChats.set(partner.socketId, { partnerId: socket.id, roomId });
       
       // Notify both users
-      socket.emit('partner-found', { partnerId: partner.socketId, roomId });
-      io.to(partner.socketId).emit('partner-found', { partnerId: socket.id, roomId });
+      socket.emit('partner-found', { partnerId: partner.socketId, roomId, partnerChatMode: partner.chatMode });
+      io.to(partner.socketId).emit('partner-found', { partnerId: socket.id, roomId, partnerChatMode: userSockets.get(socket.id).chatMode });
       
     } else {
       // Add to waiting queue
