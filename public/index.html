@@ -55,13 +55,13 @@
                     </div>
 
                     <div class="buttons-container">
-                        <button class="start-chat-btn" id="startChatBtn" disabled>
-                            <i class="fas fa-comment-alt"></i>
-                            Text Chat
-                        </button>
-                        <button class="start-video-btn" id="startVideoChatBtn" disabled>
+                        <button class="start-video-btn" id="startVideoChatBtn">
                             <i class="fas fa-video"></i>
                             Video Chat
+                        </button>
+                        <button class="start-chat-btn" id="startChatBtn">
+                            <i class="fas fa-comment-alt"></i>
+                            Text Chat
                         </button>
                     </div>
                 </div>
@@ -121,6 +121,9 @@
                         <button class="video-control-btn" id="toggleAudioBtn">
                             <i class="fas fa-microphone"></i>
                         </button>
+                        <button class="video-control-btn" id="fullscreenBtn">
+                            <i class="fas fa-expand"></i>
+                        </button>
                         <button class="video-control-btn end-call-btn" id="endCallBtn">
                             <i class="fas fa-phone-slash"></i>
                         </button>
@@ -138,6 +141,10 @@
 
                 <div class="message-input-container">
                     <div class="message-input">
+                        <button class="emoji-btn" id="emojiBtn">
+                            <i class="far fa-smile"></i>
+                        </button>
+                        <div class="emoji-picker hidden" id="emojiPicker"></div>
                         <input type="text" id="messageInput" placeholder="Type your message..." maxlength="500">
                         <button class="send-btn" id="sendBtn">
                             <i class="fas fa-paper-plane"></i>
