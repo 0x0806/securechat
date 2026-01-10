@@ -11,6 +11,7 @@ class SecureChat {
         this.roomId = null;
         this.typingTimer = null;
         this.isTyping = false;
+        this.chatMode = 'text'; // 'text' or 'video'
         
         this.initializeElements();
         this.bindEvents();
@@ -26,6 +27,8 @@ class SecureChat {
         
         // Buttons
         this.startChatBtn = document.getElementById('startChatBtn');
+        this.startVideoChatBtn = document.getElementById('startVideoChatBtn');
+        this.termsCheckbox = document.getElementById('termsCheckbox');
         this.cancelWaitBtn = document.getElementById('cancelWaitBtn');
         this.sendBtn = document.getElementById('sendBtn');
         this.skipBtn = document.getElementById('skipBtn');
@@ -56,7 +59,16 @@ class SecureChat {
     }
     
     bindEvents() {
-        this.startChatBtn.addEventListener('click', () => this.startChat());
+        this.termsCheckbox.addEventListener('change', () => this.toggleStartButtons());
+        
+        this.startChatBtn.addEventListener('click', () => {
+            this.chatMode = 'text';
+            this.startChat();
+        });
+        this.startVideoChatBtn.addEventListener('click', () => {
+            this.chatMode = 'video';
+            this.startChat();
+        });
         this.cancelWaitBtn.addEventListener('click', () => this.cancelWait());
         this.sendBtn.addEventListener('click', () => this.sendMessage());
         this.skipBtn.addEventListener('click', () => this.skipPartner());
@@ -83,8 +95,17 @@ class SecureChat {
         // Handle window focus/blur for typing indicators
         window.addEventListener('focus', () => this.handleWindowFocus());
         window.addEventListener('blur', () => this.handleWindowBlur());
+        
+        // Initialize button state
+        this.toggleStartButtons();
     }
     
+    toggleStartButtons() {
+        const enabled = this.termsCheckbox.checked;
+        this.startChatBtn.disabled = !enabled;
+        this.startVideoChatBtn.disabled = !enabled;
+    }
+
     setupSocketEvents() {
         this.socket.on('connect', () => {
             this.updateConnectionStatus(true);
@@ -100,12 +121,33 @@ class SecureChat {
             this.showScreen('waiting');
         });
         
-        this.socket.on('partner-found', (data) => {
+        this.socket.on('partner-found', async (data) => {
             this.partnerId = data.partnerId;
             this.roomId = data.roomId;
             this.showScreen('chat');
             this.showNotification('Partner found! Start chatting', 'success');
             this.updatePartnerStatus('Online');
+            
+            // Auto-start video if in video mode
+            if (this.chatMode === 'video') {
+                // Start local video immediately
+                try {
+                    await this.startLocalVideo();
+                } catch (e) {
+                    console.error("Failed to start video:", e);
+                }
+                
+                if (data.partnerChatMode === 'video') {
+                    // Both in video mode - connect directly
+                    if (this.socket.id > this.partnerId) {
+                        this.startCall();
+                    }
+                } else {
+                    // Partner is text - request video
+                    this.socket.emit('video-call-request');
+                    this.showNotification('Requesting video call...', 'info');
+                }
+            }
         });
         
         this.socket.on('message-received', (data) => {
@@ -124,7 +166,11 @@ class SecureChat {
         });
         
         this.socket.on('video-call-request', (data) => {
-            this.showCallRequestModal();
+            if (this.chatMode === 'video') {
+                this.acceptCall();
+            } else {
+                this.showCallRequestModal();
+            }
         });
         
         this.socket.on('video-call-response', (data) => {
@@ -132,6 +178,7 @@ class SecureChat {
                 this.startCall();
             } else {
                 this.showNotification('Call declined - Continue texting', 'warning');
+                this.endCall(); // Clean up local stream/UI since call was declined
                 // Focus back on text input when call is declined
                 if (this.messageInput) {
                     setTimeout(() => {
@@ -289,7 +336,8 @@ class SecureChat {
     
     startChat() {
         this.socket.emit('find-partner', {
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            chatMode: this.chatMode
         });
     }
     
@@ -327,6 +375,44 @@ class SecureChat {
         this.showNotification('Finding a new partner...', 'info');
     }
     
+    async startLocalVideo() {
+        if (this.localStream) return;
+        
+        // Prevent concurrent calls
+        if (this.isStartingVideo) {
+            while (this.isStartingVideo) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            if (this.localStream) return;
+        }
+        
+        this.isStartingVideo = true;
+        
+        this.videoContainer.classList.remove('hidden');
+        
+        try {
+            let constraints = { video: true, audio: true };
+            try {
+                this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            } catch (videoError) {
+                console.log('Video access failed, trying audio only:', videoError);
+                constraints = { video: false, audio: true };
+                this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            }
+            
+            this.localVideo.srcObject = this.localStream;
+            this.toggleVideoBtn.style.display = 'flex';
+            this.toggleAudioBtn.style.display = 'flex';
+        } catch (error) {
+            console.error('Media access error:', error);
+            this.showNotification('Camera/microphone access denied', 'error');
+            this.videoContainer.classList.add('hidden');
+            throw error;
+        } finally {
+            this.isStartingVideo = false;
+        }
+    }
+
     async initiateCall() {
         if (!this.partnerId) {
             this.showNotification('No partner connected', 'warning');
@@ -339,23 +425,12 @@ class SecureChat {
         }
         
         try {
-            // Always try to get both video and audio, fallback to audio only if video fails
-            let constraints = { video: true, audio: true };
-            
-            try {
-                this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-                this.showNotification('Starting video call...', 'info');
-            } catch (videoError) {
-                console.log('Video access failed, trying audio only:', videoError);
-                constraints = { video: false, audio: true };
-                this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-                this.showNotification('Starting voice call...', 'info');
-            }
-            
+            await this.startLocalVideo();
+            this.showNotification('Starting call...', 'info');
             this.socket.emit('video-call-request');
+            
         } catch (error) {
-            console.error('Media access error:', error);
-            this.showNotification('Camera/microphone access denied', 'error');
+            // Error handled in startLocalVideo
         }
     }
     
@@ -369,24 +444,13 @@ class SecureChat {
     
     async acceptCall() {
         this.hideCallRequestModal();
-        this.socket.emit('video-call-response', { accepted: true });
-        
         try {
-            // Try video + audio first, fallback to audio only
-            let constraints = { video: true, audio: true };
-            
-            try {
-                this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-            } catch (videoError) {
-                console.log('Video access failed, trying audio only:', videoError);
-                constraints = { video: false, audio: true };
-                this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-            }
-            
-            this.startCall();
+            await this.startLocalVideo();
+
+            // Send response AFTER media is ready
+            this.socket.emit('video-call-response', { accepted: true });
         } catch (error) {
-            console.error('Media access error:', error);
-            this.showNotification('Camera/microphone access denied', 'error');
+            this.socket.emit('video-call-response', { accepted: false });
         }
     }
     
@@ -455,6 +519,15 @@ class SecureChat {
     async handleOffer(offer) {
         try {
             console.log('Handling offer, current signaling state:', this.peerConnection.signalingState);
+            
+            // Ensure video is ready if in video mode
+            if (this.chatMode === 'video' && !this.localStream) {
+                try {
+                    await this.startLocalVideo();
+                } catch (e) {
+                    console.error("Failed to start video in handleOffer:", e);
+                }
+            }
             
             // Reset peer connection if in bad state
             if (this.peerConnection.signalingState !== 'stable') {
