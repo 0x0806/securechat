@@ -12,6 +12,8 @@ class SecureChat {
         this.typingTimer = null;
         this.isTyping = false;
         this.chatMode = 'text'; // 'text' or 'video'
+        this.originalTitle = document.title;
+        this.titleInterval = null;
         
         this.initializeElements();
         this.bindEvents();
@@ -41,6 +43,7 @@ class SecureChat {
         this.toggleVideoBtn = document.getElementById('toggleVideoBtn');
         this.toggleAudioBtn = document.getElementById('toggleAudioBtn');
         this.endCallBtn = document.getElementById('endCallBtn');
+        this.fullscreenBtn = document.getElementById('fullscreenBtn');
         
         // Chat elements
         this.messageInput = document.getElementById('messageInput');
@@ -48,6 +51,9 @@ class SecureChat {
         this.typingIndicator = document.getElementById('typingIndicator');
         this.partnerStatus = document.getElementById('partnerStatus');
         
+        this.emojiBtn = document.getElementById('emojiBtn');
+        this.emojiPicker = document.getElementById('emojiPicker');
+
         // Modal elements
         this.callRequestModal = document.getElementById('callRequestModal');
         this.acceptCallBtn = document.getElementById('acceptCallBtn');
@@ -59,8 +65,6 @@ class SecureChat {
     }
     
     bindEvents() {
-        this.termsCheckbox.addEventListener('change', () => this.toggleStartButtons());
-        
         this.startChatBtn.addEventListener('click', () => {
             this.chatMode = 'text';
             this.startChat();
@@ -78,6 +82,8 @@ class SecureChat {
         this.toggleVideoBtn.addEventListener('click', () => this.toggleVideo());
         this.toggleAudioBtn.addEventListener('click', () => this.toggleAudio());
         
+        this.fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
+
         this.acceptCallBtn.addEventListener('click', () => this.acceptCall());
         this.declineCallBtn.addEventListener('click', () => this.declineCall());
         
@@ -96,14 +102,19 @@ class SecureChat {
         window.addEventListener('focus', () => this.handleWindowFocus());
         window.addEventListener('blur', () => this.handleWindowBlur());
         
-        // Initialize button state
-        this.toggleStartButtons();
-    }
-    
-    toggleStartButtons() {
-        const enabled = this.termsCheckbox.checked;
-        this.startChatBtn.disabled = !enabled;
-        this.startVideoChatBtn.disabled = !enabled;
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.currentScreen === 'chat') {
+                this.skipPartner();
+            }
+        });
+
+        // Make local video draggable
+        this.makeDraggable(this.localVideo);
+
+        // Emoji events
+        this.emojiBtn.addEventListener('click', () => this.toggleEmojiPicker());
+        this.setupEmojiPicker();
     }
 
     setupSocketEvents() {
@@ -126,6 +137,7 @@ class SecureChat {
             this.roomId = data.roomId;
             this.showScreen('chat');
             this.showNotification('Partner found! Start chatting', 'success');
+            this.playSound('found');
             this.updatePartnerStatus('Online');
             
             // Auto-start video if in video mode
@@ -153,7 +165,8 @@ class SecureChat {
         this.socket.on('message-received', (data) => {
             if (data.senderId !== this.socket.id) {
                 this.displayMessage(data.message, false, data.timestamp);
-                this.playNotificationSound();
+                this.playSound('message');
+                this.flashTitle('New Message!');
             }
         });
         
@@ -335,6 +348,13 @@ class SecureChat {
     }
     
     startChat() {
+        if (!this.termsCheckbox.checked) {
+            this.showNotification('Please accept the terms first', 'warning');
+            return;
+        }
+
+        this.showScreen('waiting');
+        
         this.socket.emit('find-partner', {
             timestamp: Date.now(),
             chatMode: this.chatMode
@@ -894,24 +914,61 @@ class SecureChat {
         }, 4000);
     }
     
-    playNotificationSound() {
-        // Create a subtle notification sound using Web Audio API
+    playSound(type) {
         try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
             
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
             
-            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
             
-            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
+            const now = ctx.currentTime;
             
-            oscillator.start();
-            oscillator.stop(audioContext.currentTime + 0.1);
+            switch (type) {
+                case 'message':
+                    // Soft pop
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(800, now);
+                    osc.frequency.exponentialRampToValueAtTime(400, now + 0.1);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                    break;
+                    
+                case 'found':
+                    // Success chime
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, now); // A4
+                    osc.frequency.setValueAtTime(554, now + 0.1); // C#5
+                    osc.frequency.setValueAtTime(659, now + 0.2); // E5
+                    
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.linearRampToValueAtTime(0.1, now + 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+                    
+                    osc.start(now);
+                    osc.stop(now + 0.6);
+                    break;
+                    
+                case 'error':
+                case 'disconnect':
+                    // Subtle low buzz
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.linearRampToValueAtTime(100, now + 0.2);
+                    
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.2);
+                    
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                    break;
+            }
         } catch (error) {
             // Silent fail if audio context is not available
         }
@@ -919,11 +976,100 @@ class SecureChat {
     
     handleWindowFocus() {
         // Resume any paused functionality when window gains focus
+        this.stopTitleFlash();
     }
     
     handleWindowBlur() {
         // Pause typing when window loses focus
         this.stopTyping();
+    }
+
+    makeDraggable(element) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        element.onmousedown = dragMouseDown;
+
+        function dragMouseDown(e) {
+            e = e || window.event;
+            e.preventDefault();
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        }
+
+        function elementDrag(e) {
+            e = e || window.event;
+            e.preventDefault();
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            element.style.top = (element.offsetTop - pos2) + "px";
+            element.style.left = (element.offsetLeft - pos1) + "px";
+            element.style.right = 'auto'; // Clear right/bottom to allow free movement
+            element.style.bottom = 'auto';
+        }
+
+        function closeDragElement() {
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+    }
+
+    toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            this.videoContainer.requestFullscreen().catch(err => {
+                console.error(`Error attempting to enable fullscreen: ${err.message}`);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
+    setupEmojiPicker() {
+        const emojis = ['😀', '😂', '😍', '😎', '🤔', '😭', '😡', '👍', '👎', '❤️', '🔥', '✨', '👋', '👻', '🎉', '👀', '💯', '💩', '🤡', '🚀'];
+        
+        emojis.forEach(emoji => {
+            const span = document.createElement('span');
+            span.textContent = emoji;
+            span.className = 'emoji-item';
+            span.addEventListener('click', () => {
+                this.messageInput.value += emoji;
+                this.messageInput.focus();
+                this.emojiPicker.classList.add('hidden');
+            });
+            this.emojiPicker.appendChild(span);
+        });
+
+        // Close picker when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!this.emojiBtn.contains(e.target) && !this.emojiPicker.contains(e.target)) {
+                this.emojiPicker.classList.add('hidden');
+            }
+        });
+    }
+
+    toggleEmojiPicker() {
+        this.emojiPicker.classList.toggle('hidden');
+    }
+
+    flashTitle(message) {
+        if (!document.hidden) return;
+        if (this.titleInterval) clearInterval(this.titleInterval);
+        
+        let isOriginal = true;
+        this.titleInterval = setInterval(() => {
+            document.title = isOriginal ? message : this.originalTitle;
+            isOriginal = !isOriginal;
+        }, 1000);
+    }
+
+    stopTitleFlash() {
+        if (this.titleInterval) {
+            clearInterval(this.titleInterval);
+            this.titleInterval = null;
+            document.title = this.originalTitle;
+        }
     }
 }
 
