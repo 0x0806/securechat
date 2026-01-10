@@ -32,7 +32,14 @@ body {
     min-height: 100vh;
     color: var(--primary-text);
     overflow-x: hidden;
+    animation: bgPulse 10s ease-in-out infinite alternate;
 }
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-color); }
 
 .app-container {
     min-height: 100vh;
@@ -103,7 +110,7 @@ body {
     border-radius: 20px;
     padding: 3rem 2rem;
     box-shadow: var(--shadow-glass);
-    animation: fadeInUp 0.8s ease-out;
+    animation: fadeInUp 0.8s ease-out, float 6s ease-in-out infinite;
 }
 
 .welcome-icon {
@@ -167,6 +174,8 @@ body {
     font-size: 0.9rem;
     cursor: pointer;
     user-select: none;
+    position: relative;
+    z-index: 10;
 }
 
 .checkbox-wrapper input[type="checkbox"] {
@@ -185,8 +194,8 @@ body {
     margin: 0 auto;
 }
 
-.start-chat-btn {
-    background: var(--gradient-accent);
+.start-video-btn {
+    background: var(--gradient-accent); /* Primary style for Video */
     border: none;
     border-radius: 50px;
     padding: 1rem 2rem;
@@ -201,29 +210,32 @@ body {
     width: 100%;
     transition: all 0.3s ease;
     box-shadow: var(--shadow-primary);
+    animation: glowPulse 2s infinite;
 }
 
-.start-chat-btn:hover {
+.start-video-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 12px 40px rgba(0, 212, 255, 0.4);
+    animation: none;
 }
 
 .start-chat-btn:disabled,
 .start-video-btn:disabled {
-    opacity: 0.5;
+    opacity: 0.6;
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
+    filter: grayscale(100%);
 }
 
-.start-video-btn {
+.start-chat-btn {
     background: transparent;
-    border: 2px solid var(--accent-color);
+    border: 2px solid var(--glass-border); /* Secondary style for Text */
     border-radius: 50px;
     padding: 1rem 2rem;
     font-size: 1.1rem;
     font-weight: bold;
-    color: var(--accent-color);
+    color: var(--primary-text);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -233,10 +245,10 @@ body {
     transition: all 0.3s ease;
 }
 
-.start-video-btn:hover {
-    background: rgba(0, 212, 255, 0.1);
+.start-chat-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--primary-text);
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 212, 255, 0.2);
 }
 
 /* Waiting Screen */
@@ -257,19 +269,26 @@ body {
 }
 
 .spinner {
-    width: 80px;
-    height: 80px;
+    width: 100px;
+    height: 100px;
     margin: 0 auto 2rem;
     position: relative;
+    background: radial-gradient(circle, rgba(0, 212, 255, 0.1) 0%, transparent 70%);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 50%;
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.1);
 }
 
 .spinner-inner {
-    width: 100%;
-    height: 100%;
-    border: 3px solid var(--glass-border);
-    border-top: 3px solid var(--accent-color);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 50%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent-color));
+    transform-origin: 0 0;
+    animation: radarSpin 2s linear infinite;
+    box-shadow: 0 0 15px var(--accent-color);
 }
 
 .waiting-card h2 {
@@ -476,6 +495,8 @@ body {
     border: 2px solid var(--glass-border);
     z-index: 1010;
     background: var(--accent-bg);
+    cursor: move; /* Indicates draggable */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
 }
 
 #remoteVideo {
@@ -493,6 +514,12 @@ body {
     display: flex;
     gap: 1rem;
     z-index: 1020;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.video-container:hover .video-controls {
+    opacity: 1;
 }
 
 .video-control-btn {
@@ -559,37 +586,40 @@ body {
 
 /* Message Input */
 .message-input-container {
-    padding: 1rem 1.5rem;
-    border-top: 1px solid var(--glass-border);
-    background: var(--accent-bg);
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid var(--border);
+    background: rgba(15, 23, 42, 0.4);
 }
 
 .message-input {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.75rem;
     align-items: center;
+    position: relative;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 0.25rem 0.5rem;
+    transition: border-color 0.2s;
+}
+
+.message-input:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
 #messageInput {
     flex: 1;
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    border-radius: 25px;
-    padding: 0.8rem 1rem;
-    color: var(--primary-text);
+    background: transparent;
+    border: none;
+    padding: 0.75rem;
+    color: var(--text-main);
     font-size: 1rem;
     outline: none;
-    backdrop-filter: blur(10px);
-    transition: all 0.3s ease;
-}
-
-#messageInput:focus {
-    border-color: var(--accent-color);
-    box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
 }
 
 #messageInput::placeholder {
-    color: var(--secondary-text);
+    color: var(--text-tertiary);
 }
 
 .send-btn {
@@ -597,19 +627,62 @@ body {
     height: 45px;
     border: none;
     border-radius: 50%;
-    background: var(--gradient-accent);
-    color: white;
+    background: transparent;
+    color: var(--primary);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s ease;
-    box-shadow: var(--shadow-primary);
+    transition: all 0.2s ease;
+    font-size: 1.2rem;
 }
 
 .send-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4);
+    background: var(--bg-surface-hover);
+    color: var(--primary-hover);
+}
+
+.emoji-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0 0.5rem;
+    transition: color 0.3s;
+}
+
+.emoji-btn:hover {
+    color: var(--text-main);
+}
+
+.emoji-picker {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    background: var(--accent-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.5rem;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.5rem;
+    box-shadow: var(--shadow-lg);
+    margin-bottom: 10px;
+    backdrop-filter: blur(20px);
+}
+
+.emoji-item {
+    cursor: pointer;
+    font-size: 1.5rem;
+    padding: 5px;
+    border-radius: 5px;
+    transition: background 0.2s;
+    text-align: center;
+}
+
+.emoji-item:hover {
+    background: var(--bg-surface-hover);
 }
 
 /* Notifications */
@@ -625,29 +698,29 @@ body {
 
 .notification {
     background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
     padding: 1rem 1.5rem;
-    color: var(--primary-text);
-    box-shadow: var(--shadow-glass);
+    color: var(--text-main);
+    box-shadow: var(--shadow-lg);
     animation: slideInRight 0.5s ease-out;
     max-width: 300px;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
 }
 
 .notification.success {
-    border-left: 4px solid var(--success-color);
+    border-left: 4px solid var(--success);
 }
 
 .notification.warning {
-    border-left: 4px solid var(--warning-color);
+    border-left: 4px solid var(--warning);
 }
 
 .notification.error {
-    border-left: 4px solid var(--danger-color);
+    border-left: 4px solid var(--danger);
 }
 
 /* Modal */
@@ -668,14 +741,14 @@ body {
 
 .modal-content {
     background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--glass-border);
-    border-radius: 20px;
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
     padding: 2rem;
     max-width: 400px;
     width: 90%;
     text-align: center;
-    box-shadow: var(--shadow-glass);
+    box-shadow: var(--shadow-xl);
     animation: scaleIn 0.3s ease;
 }
 
@@ -689,16 +762,16 @@ body {
 
 .modal-header i {
     font-size: 3rem;
-    color: var(--accent-color);
+    color: var(--primary);
 }
 
 .modal-header h3 {
-    color: var(--primary-text);
+    color: var(--text-main);
     margin: 0;
 }
 
 .modal p {
-    color: var(--secondary-text);
+    color: var(--text-secondary);
     margin-bottom: 2rem;
     line-height: 1.6;
 }
@@ -712,10 +785,10 @@ body {
 .modal-btn {
     padding: 0.8rem 1.5rem;
     border: none;
-    border-radius: 25px;
-    font-weight: bold;
+    border-radius: var(--radius-md);
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -723,24 +796,22 @@ body {
 
 .decline-btn {
     background: transparent;
-    border: 2px solid var(--danger-color);
-    color: var(--danger-color);
+    border: 1px solid var(--danger);
+    color: var(--danger);
 }
 
 .decline-btn:hover {
-    background: var(--danger-color);
+    background: rgba(239, 68, 68, 0.1);
     color: white;
 }
 
 .accept-btn {
-    background: var(--gradient-accent);
+    background: var(--primary);
     color: white;
-    box-shadow: var(--shadow-primary);
 }
 
 .accept-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4);
+    background: var(--primary-hover);
 }
 
 /* Utility Classes */
@@ -829,7 +900,7 @@ body {
 /* Responsive Design */
 @media (max-width: 768px) {
     .header {
-        padding: 1rem;
+        padding: 1rem 1.5rem;
     }
 
     .main-content {
@@ -838,7 +909,7 @@ body {
 
     .chat-screen {
         height: calc(100vh - 100px);
-        border-radius: 15px;
+        border-radius: var(--radius-lg);
     }
 
     .welcome-card {
@@ -920,11 +991,12 @@ body {
 
 @media (max-width: 480px) {
     .logo {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
     }
 
     .status-indicator {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
     }
 
     .welcome-icon {
@@ -982,7 +1054,7 @@ body {
 /* Focus styles for keyboard navigation */
 button:focus,
 input:focus {
-    outline: 2px solid var(--accent-color);
+    outline: 2px solid var(--primary);
     outline-offset: 2px;
 }
 
