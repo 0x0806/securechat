@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>SecureChat - Anonymous Chat App to Meet Strangers, Video Chat Securely, and Send Encrypted Messages Top Omegle Alternative | Chat with Strangers |  Video Chat — Omegle Random Cam Chat Alternative  </title>
+    <title>SecureChat - Anonymous Video & Text Chat</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -46,10 +46,24 @@
                             <span>Secure & Private</span>
                         </div>
                     </div>
-                    <button class="start-chat-btn" id="startChatBtn">
-                        <i class="fas fa-play"></i>
-                        Start Chatting
-                    </button>
+                    
+                    <div class="terms-container">
+                        <label class="checkbox-wrapper">
+                            <input type="checkbox" id="termsCheckbox">
+                            <span>I accept the Terms of Service & Privacy Policy</span>
+                        </label>
+                    </div>
+
+                    <div class="buttons-container">
+                        <button class="start-chat-btn" id="startChatBtn" disabled>
+                            <i class="fas fa-comment-alt"></i>
+                            Text Chat
+                        </button>
+                        <button class="start-video-btn" id="startVideoChatBtn" disabled>
+                            <i class="fas fa-video"></i>
+                            Video Chat
+                        </button>
+                    </div>
                 </div>
             </div>
 
