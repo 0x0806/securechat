@@ -4,31 +4,42 @@ const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
 const cors = require('cors');
+const helmet = require('helmet');
+const compression = require('compression');
+const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
 
 // Security: Add basic security headers
 app.disable('x-powered-by');
-app.use((req, res, next) => {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  // Security: Add a Content Security Policy (CSP) to mitigate XSS and data injection attacks.
-  // This policy restricts where content (like scripts, styles, fonts) can be loaded from.
-  // It's a critical security layer. For production, you might need to add specific domains for CDNs.
-  res.setHeader(
-    'Content-Security-Policy',
-    "default-src 'self'; " + // By default, only allow content from our own origin.
-    "script-src 'self'; " + // Allow scripts from our origin.
-    "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; " + // Allow stylesheets from our origin and inline styles.
-    "font-src 'self' https://cdnjs.cloudflare.com; " + // Allow fonts from our origin and Font Awesome's CDN. For production, self-hosting fonts is more secure.
-    "connect-src 'self'; " + // Allow WebSocket and fetch to our own origin. 'self' includes wss:// if the page is on https://.
-    "img-src 'self' data:; " + // Allow images from our origin and data: URIs.
-    "media-src 'self' blob:;" // Allow media (video/audio) from our origin and blob URIs (for WebRTC).
-  );
-  next();
-});
+
+// Suggestion 1: Trust Proxy for correct IP handling behind load balancers/proxies
+app.set('trust proxy', 1);
+
+// Suggestion 1: Add timestamps to logs
+const originalLog = console.log;
+console.log = (...args) => {
+  originalLog(`[${new Date().toISOString()}]`, ...args);
+};
+
+// Suggestion 1: Compression
+app.use(compression());
+
+// Suggestion 1: Use Helmet for security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+      fontSrc: ["'self'", "https://cdnjs.cloudflare.com"],
+      connectSrc: ["'self'"],
+      imgSrc: ["'self'", "data:"],
+      mediaSrc: ["'self'", "blob:"],
+    },
+  },
+}));
 
 // For production, restrict the origin to your frontend's domain
 const allowedOrigin = process.env.CORS_ORIGIN || "*";
@@ -47,13 +58,25 @@ const waitingUsers = new Map(); // Use Map for O(1) access and FIFO order
 const activeChats = new Map();
 const userSockets = new Map();
 const rateLimit = new Map();
+const spamFilter = new Map(); // Suggestion 2: Spam filter storage
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Suggestion 2: Log server stats periodically
+setInterval(() => {
+    console.log(`Stats: ${activeChats.size} active chats, ${waitingUsers.size} waiting users, ${userSockets.size} connected sockets.`);
+    // Suggestion 25: Broadcast online count
+    io.emit('online-count', userSockets.size);
+}, 60000);
+
+// Suggestion 4: Health Check
+app.get('/health', (req, res) => res.status(200).send('OK'));
+
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);  
+  io.emit('online-count', userSockets.size + 1); // Immediate update
 
   // Security: Basic rate limiting to prevent spam
   socket.use(([event, ...args], next) => {
@@ -96,8 +119,6 @@ io.on('connection', (socket) => {
     // Optimized matching logic: Single pass to find the best possible partner.
     let partnerId = null;
     let partnerData = null;
-    let fallbackPartnerId = null;
-    let fallbackPartnerData = null;
 
     // Helper to validate socket
     const isSocketValid = (sid) => {
@@ -116,17 +137,6 @@ io.on('connection', (socket) => {
             partnerData = pdata;
             break; // Found the best match, no need to search further.
         }
-        // If no same-mode partner found yet, keep the first available user as a fallback.
-        if (!fallbackPartnerId) {
-            fallbackPartnerId = pid;
-            fallbackPartnerData = pdata;
-        }
-    }
-
-    // If no ideal (same-mode) partner was found, use the fallback.
-    if (!partnerId && fallbackPartnerId) {
-        partnerId = fallbackPartnerId;
-        partnerData = fallbackPartnerData;
     }
 
     if (partnerId) {
@@ -134,7 +144,8 @@ io.on('connection', (socket) => {
       waitingUsers.delete(partnerId);
       const partner = partnerData;
 
-      const roomId = `room_${socket.id}_${partner.socketId}`;
+      // Suggestion 3: Use UUID for room ID
+      const roomId = crypto.randomUUID();
       
       // Join both users to room
       socket.join(roomId);
@@ -142,8 +153,8 @@ io.on('connection', (socket) => {
       if (partnerSocket) partnerSocket.join(roomId);
       
       // Store active chat
-      activeChats.set(socket.id, { partnerId: partner.socketId, roomId });
-      activeChats.set(partner.socketId, { partnerId: socket.id, roomId });
+      activeChats.set(socket.id, { partnerId: partner.socketId, roomId, startTime: Date.now() });
+      activeChats.set(partner.socketId, { partnerId: socket.id, roomId, startTime: Date.now() });
       
       // Notify both users
       socket.emit('partner-found', { partnerId: partner.socketId, roomId, partnerChatMode: partner.chatMode });
@@ -166,16 +177,27 @@ io.on('connection', (socket) => {
     
     // Security: Validate message content and length on server side
     if (chat && data.message && typeof data.message === 'string') {
-      // Enforce max length (increased to 2000 to allow for encrypted payload overhead)
-      const messageContent = data.message.trim().substring(0, 2000);
+      // Suggestion 14: Enforce max length
+      // Suggestion 3: Strip HTML tags server-side
+      const messageContent = data.message.trim().substring(0, 2000).replace(/<[^>]*>?/gm, '');
       
       if (messageContent.length > 0) {
-      io.to(chat.roomId).emit('message-received', {
+        // Suggestion 2: Simple Spam Filter
+        const lastMsg = spamFilter.get(socket.id);
+        if (lastMsg === messageContent) {
+            // Silently fail or notify user (optional)
+            return; 
+        }
+        spamFilter.set(socket.id, messageContent);
+        // Clear spam memory after 5 seconds to allow repeating later
+        setTimeout(() => spamFilter.delete(socket.id), 5000);
+
+        io.to(chat.roomId).emit('message-received', {
           message: messageContent,
-        senderId: socket.id,
-        timestamp: Date.now(),
-        id: data.id // Pass back message ID for delivery confirmation
-      });
+          senderId: socket.id,
+          timestamp: Date.now(),
+          id: data.id // Pass back message ID for delivery confirmation
+        });
       }
     }
   });
@@ -244,6 +266,12 @@ io.on('connection', (socket) => {
     }
   });
   
+  // Suggestion 3: Report User Handler
+  socket.on('report-user', (data) => {
+    console.warn(`[REPORT] User ${socket.id} reported partner ${data.partnerId} for reason: ${data.reason || 'Unspecified'}`);
+    // In a real app, you would store this in a database and potentially ban the IP.
+  });
+
   socket.on('disconnect', () => {
     handleDisconnection(socket.id);
   });
@@ -252,6 +280,7 @@ io.on('connection', (socket) => {
 function handleDisconnection(socketId) {
   // Clean up rate limit tracking
   rateLimit.delete(socketId);
+  spamFilter.delete(socketId);
 
   // Remove from waiting queue
   waitingUsers.delete(socketId);
@@ -259,6 +288,10 @@ function handleDisconnection(socketId) {
   // Handle active chat disconnection
   const chat = activeChats.get(socketId);
   if (chat) {
+    // Suggestion 2: Log Chat Duration
+    const duration = (Date.now() - chat.startTime) / 1000;
+    console.log(`Chat ended. Duration: ${duration}s`);
+
     io.to(chat.partnerId).emit('partner-disconnected');
     activeChats.delete(socketId);
     activeChats.delete(chat.partnerId);
@@ -266,7 +299,30 @@ function handleDisconnection(socketId) {
   
   userSockets.delete(socketId);
   console.log('User disconnected:', socketId);
+  io.emit('online-count', Math.max(0, userSockets.size - 1));
 }
+
+// Suggestion 3: Graceful Shutdown
+const gracefulShutdown = () => {
+  console.log('Received kill signal, shutting down gracefully');
+  server.close(() => {
+    console.log('Closed out remaining connections');
+    process.exit(0);
+  });
+
+  setTimeout(() => {
+    console.error('Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
+
+// Suggestion 6: 404 Handler
+app.use((req, res) => {
+  res.status(404).send('404 Not Found');
+});
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, '0.0.0.0', () => {
