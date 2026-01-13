@@ -1241,7 +1241,9 @@ class SecureChat {
     /** Makes a DOM element draggable. */
     makeDraggable(element) {
         let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-        element.onmousedown = dragMouseDown;
+        const parent = element.parentElement; // The container to constrain within
+
+        element.onmousedown = dragMouseDown; 
 
         function dragMouseDown(e) {
             e = e || window.event;
@@ -1255,13 +1257,31 @@ class SecureChat {
         function elementDrag(e) {
             e = e || window.event;
             e.preventDefault();
+            // calculate the new cursor position:
             pos1 = pos3 - e.clientX;
             pos2 = pos4 - e.clientY;
             pos3 = e.clientX;
             pos4 = e.clientY;
-            element.style.top = (element.offsetTop - pos2) + "px";
-            element.style.left = (element.offsetLeft - pos1) + "px";
-            element.style.right = 'auto'; // Clear right/bottom to allow free movement
+
+            let newTop = element.offsetTop - pos2;
+            let newLeft = element.offsetLeft - pos1;
+
+            // Constrain to parent boundaries
+            const parentRect = parent.getBoundingClientRect();
+            const elemRect = element.getBoundingClientRect();
+
+            if (newTop < 0) newTop = 0;
+            if (newLeft < 0) newLeft = 0;
+            if (newTop + elemRect.height > parentRect.height) {
+                newTop = parentRect.height - elemRect.height;
+            }
+            if (newLeft + elemRect.width > parentRect.width) {
+                newLeft = parentRect.width - elemRect.width;
+            }
+
+            element.style.top = newTop + "px";
+            element.style.left = newLeft + "px";
+            element.style.right = 'auto'; // Clear right/bottom to allow free movement as we set top/left
             element.style.bottom = 'auto';
         }
 
