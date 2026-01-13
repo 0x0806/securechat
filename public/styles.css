@@ -398,6 +398,7 @@ body {
 .chat-controls {
     display: flex;
     gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .control-btn {
@@ -650,6 +651,10 @@ body {
     background: rgba(0,0,0,0.5);
     backdrop-filter: blur(10px);
     border-radius: 50px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 90%;
+    max-width: 800px;
 }
 
 .video-control-btn {
@@ -1095,7 +1100,9 @@ body {
         bottom: 20px;
         width: 90%;
         justify-content: space-around;
-        gap: 0;
+        gap: 10px;
+        padding: 10px;
+        border-radius: 20px;
     }
 
     .notification-container {
@@ -1106,6 +1113,12 @@ body {
 
     .notification {
         max-width: none;
+    }
+    
+    .video-control-btn {
+        width: 45px;
+        height: 45px;
+        font-size: 1rem;
     }
 
     .modal-content {
