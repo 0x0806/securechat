@@ -2460,3 +2460,196 @@ input:focus-visible {
         padding-bottom: max(20px, env(safe-area-inset-bottom)) !important;
     }
 }
+
+/* ========== GLASSMORPHISM MODAL CONTAINERS (OVERRIDE) ========== */
+.nsfw-modal-overlay {
+    background: rgba(0, 0, 0, 0.92) !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+}
+
+.nsfw-modal-content {
+    background: rgba(15, 23, 42, 0.85) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.8),
+        0 0 0 1px rgba(255, 255, 255, 0.06),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.nsfw-modal-content h2 {
+    margin-bottom: 8px;
+    font-size: 1.75rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.nsfw-icon {
+    font-size: 2.5rem;
+    margin-bottom: 16px;
+    filter: drop-shadow(0 4px 8px rgba(0, 212, 255, 0.3));
+}
+
+.welcome-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Glassmorphism Containers */
+.glass-container {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px) saturate(150%);
+    -webkit-backdrop-filter: blur(10px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 20px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-container:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
+    transform: translateY(-2px);
+}
+
+.container-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.warning-container {
+    border-left: 3px solid #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.warning-container .container-header {
+    color: #fca5a5;
+}
+
+.disclaimer-container {
+    border-left: 3px solid #f59e0b;
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.disclaimer-container .container-header {
+    color: #fbbf24;
+}
+
+.privacy-container {
+    border-left: 3px solid #10b981;
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.privacy-container .container-header {
+    color: #6ee7b7;
+}
+
+/* Bullet Point Lists */
+.warning-points,
+.disclaimer-points,
+.privacy-points {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.warning-points li,
+.disclaimer-points li,
+.privacy-points li {
+    padding-left: 24px;
+    position: relative;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: #cbd5e1;
+}
+
+.warning-points li::before,
+.disclaimer-points li::before,
+.privacy-points li::before {
+    content: "•";
+    position: absolute;
+    left: 8px;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.warning-points li::before {
+    color: #f87171;
+}
+
+.disclaimer-points li::before {
+    color: #fbbf24;
+}
+
+.privacy-points li::before {
+    color: #34d399;
+}
+
+/* Enhanced Button Styles */
+.nsfw-btn-agree {
+    position: relative;
+    overflow: hidden;
+}
+
+.nsfw-btn-agree::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.nsfw-btn-agree:hover::before {
+    left: 100%;
+}
+
+.nsfw-btn-agree:active {
+    transform: translateY(0) !important;
+}
+
+.age-warning {
+    margin-top: 12px;
+    font-size: 0.75rem;
+    color: #64748b;
+    text-align: center;
+}
+
+/* Mobile Responsiveness for Glass Containers */
+@media (max-width: 480px) {
+    .nsfw-modal-content {
+        padding: 28px 24px !important;
+        max-width: 95% !important;
+    }
+
+    .glass-container {
+        padding: 16px;
+    }
+
+    .container-header {
+        font-size: 0.85rem;
+    }
+
+    .warning-points li,
+    .disclaimer-points li,
+    .privacy-points li {
+        font-size: 0.8rem;
+    }
+}
