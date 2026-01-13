@@ -1945,15 +1945,14 @@ class SecureChat {
         modal.innerHTML = `
             <div class="nsfw-modal-content">
                 <i class="fas fa-exclamation-triangle nsfw-icon"></i>
-                <h2>Age Restricted Content</h2>
+                <h2>NSFW Content Warning</h2>
                 <p>
-                    This application allows anonymous video & text chat with strangers.
-                    You must be <strong>18+</strong> to enter.
+                    This application contains unmoderated video & text chat.
+                    <strong>Viewer Discretion is Advised.</strong>
                 </p>
                 <p>
-                    <strong>Zero Tolerance Policy:</strong><br>
-                    Nudity, sexual content, and illegal activities are strictly prohibited.
-                    Violators will be banned immediately.
+                    You may encounter nudity or NSFW content.
+                    You must be <strong>18+</strong> to enter.
                 </p>
                 <div class="nsfw-actions">
                     <button class="nsfw-btn-agree" id="nsfwAgreeBtn">
@@ -2378,4 +2377,3 @@ document.addEventListener('DOMContentLoaded', () => {
  * 4. Add CSS from privacy-styles.css
  * 5. Test all privacy features
  */
-
