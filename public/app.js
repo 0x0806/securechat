@@ -28,8 +28,6 @@ class SecureChat {
         this.setupSocketEvents();
         this.setupRTC();
         this.initAudio();
-        // Move local video to a persistent container to be visible across screens
-        this.mainContent.appendChild(this.localVideo);
     }
 
     // --- Initialization & Setup ---
@@ -42,6 +40,7 @@ class SecureChat {
         this.welcomeScreen = document.getElementById('welcomeScreen');
         this.waitingScreen = document.getElementById('waitingScreen');
         this.chatScreen = document.getElementById('chatScreen');
+        this.textInterface = document.getElementById('textInterface');
         this.mainContent = document.querySelector('.main-content');
         
         // Buttons
@@ -61,13 +60,14 @@ class SecureChat {
         // Video elements
         this.localVideo = document.getElementById('localVideo');
         this.remoteVideo = document.getElementById('remoteVideo');
-        this.videoContainer = document.getElementById('videoContainer');
+        this.videoInterface = document.getElementById('videoContainer'); // Renamed ID in HTML
         this.toggleVideoBtn = document.getElementById('toggleVideoBtn');
         this.toggleVideoBtn.setAttribute('aria-label', 'Toggle your video');
         this.toggleAudioBtn = document.getElementById('toggleAudioBtn');
         this.toggleAudioBtn.setAttribute('aria-label', 'Toggle your microphone');
         this.endCallBtn = document.getElementById('endCallBtn');
         this.endCallBtn.setAttribute('aria-label', 'End call');
+        this.skipVideoBtn = document.getElementById('skipVideoBtn');
         this.fullscreenBtn = document.getElementById('fullscreenBtn');
         this.fullscreenBtn.setAttribute('aria-label', 'Toggle fullscreen');
         
@@ -93,7 +93,6 @@ class SecureChat {
         this.connectionStatus = document.getElementById('connectionStatus');
         this.notificationContainer = document.getElementById('notificationContainer');
         this.notificationContainer.setAttribute('aria-live', 'assertive');
-        this.localVideo.classList.add('hidden'); // Hide persistent local video initially
     }
 
     /**
@@ -120,7 +119,12 @@ class SecureChat {
         this.callBtn.addEventListener('click', () => this.initiateCall());
         this.skipBtn.title = 'Skip to a new partner (Esc)';
         
-        this.endCallBtn.addEventListener('click', () => this.endCall({ stopLocalStream: true }));
+        if (this.skipVideoBtn) this.skipVideoBtn.addEventListener('click', () => this.skipPartner());
+
+        // The end call button in video mode now acts as "Switch to Text" or "End Call"
+        // We don't want to stop the stream if we are just switching views, but for now let's assume it ends the call logic
+        // or switches back to text mode.
+        this.endCallBtn.addEventListener('click', () => this.switchToTextMode());
         this.toggleVideoBtn.addEventListener('click', () => this.toggleVideo());
         this.toggleAudioBtn.addEventListener('click', () => this.toggleAudio());
         
@@ -152,7 +156,7 @@ class SecureChat {
         });
 
         // Make local video draggable
-        this.makeDraggable(this.localVideo);
+        // Removed draggable to enforce enterprise fixed layout
 
         // Emoji events
         this.emojiBtn.addEventListener('click', () => this.toggleEmojiPicker());
@@ -210,7 +214,7 @@ class SecureChat {
                 if (data.partnerChatMode === 'video') {
                     // Both in video mode - connect directly
                     if (this.socket.id > this.partnerId) {
-                        this.startCall();
+                        this.startCall(true); // true = auto switch to video view
                     }
                 } else {
                     // Partner is text - request video
@@ -269,7 +273,7 @@ class SecureChat {
         
         this.socket.on('video-call-response', (data) => {
             if (data.accepted) {
-                this.startCall();
+                this.startCall(true);
             } else {
                 this.showNotification('Call declined - Continue texting', 'warning');
                 this.endCall(); // Clean up local stream/UI since call was declined
@@ -502,7 +506,7 @@ class SecureChat {
         this.resetEncryption();
         this.socket.emit('skip-partner');
         // Clean up call but keep local video stream for next partner for a seamless UX
-        this.endCall({ stopLocalStream: false });
+        this.endCall({ stopLocalStream: false, keepUI: false });
         this.clearChat();
         this.showScreen('waiting');
         this.showNotification('Finding a new partner...', 'info');
@@ -515,14 +519,15 @@ class SecureChat {
      * Requests access to the user's camera and microphone and displays the local video stream.
      */
     async startLocalVideo() {
-        if (this.localStream) return;
+        // FIX: Check if stream exists and has live tracks to prevent re-asking permission
+        if (this.localStream && this.localStream.getTracks().some(track => track.readyState === 'live')) return;
         
         // Prevent concurrent calls
         if (this.isStartingVideo) {
             while (this.isStartingVideo) {
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
-            if (this.localStream) return;
+            if (this.localStream && this.localStream.getTracks().some(track => track.readyState === 'live')) return;
         }
         
         this.isStartingVideo = true;
@@ -541,14 +546,13 @@ class SecureChat {
             
             this.localVideo.srcObject = this.localStream;
             this.localVideo.muted = true; // Fix: Mute local video to prevent feedback
-            this.localVideo.classList.remove('hidden'); // Show the persistent local video element
             this.toggleVideoBtn.style.display = 'flex';
             this.toggleAudioBtn.style.display = 'flex';
         } catch (error) {
             console.error('Media access error:', error.name, error.message);
             let userMessage = 'Could not access camera/microphone.';
             if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-                userMessage = 'Permission for camera/mic was denied. Please allow it in your browser settings.';
+                userMessage = 'Permission denied. Please allow camera/mic access.';
             } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
                 userMessage = 'No camera/microphone found on your device.';
             } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
@@ -570,8 +574,9 @@ class SecureChat {
         }
         
         if (this.isInCall) {
-            this.showNotification('Already in a call', 'warning');
-            return;
+            // If already in call, just switch view
+            this.switchViewMode('video');
+            return; 
         }
         
         try {
@@ -621,7 +626,7 @@ class SecureChat {
     }
     
     /** Starts the WebRTC call by adding local media tracks to the peer connection. */
-    async startCall() {
+    async startCall(switchToVideo = true) {
         if (!this.localStream) {
             this.showNotification('No local stream available', 'error');
             return;
@@ -653,9 +658,9 @@ class SecureChat {
                 this.peerConnection.addTrack(track, this.localStream);
             });
             
-            // NEW: Switch to video view by hiding chat elements and showing video container
-            this.chatScreen.classList.add('in-video-call');
-            this.videoContainer.classList.remove('hidden');
+            if (switchToVideo) {
+                this.switchViewMode('video');
+            }
             
             // Update button states based on available tracks
             const hasVideo = this.localStream.getVideoTracks().length > 0;
@@ -717,10 +722,8 @@ class SecureChat {
                     this.peerConnection.addTrack(track, this.localStream);
                 });
                 
-                // NEW: Switch to video view
-                this.chatScreen.classList.add('in-video-call');
-                this.videoContainer.classList.remove('hidden');
                 this.isInCall = true;
+                this.switchViewMode('video');
                 
                 // Update button states
                 const hasVideo = this.localStream.getVideoTracks().length > 0;
@@ -803,7 +806,7 @@ class SecureChat {
     }
     
     /** Gracefully ends the call, stopping all media tracks and cleaning up connections. */
-    endCall(options = { stopLocalStream: true }) {
+    endCall(options = { stopLocalStream: true, keepUI: false }) {
         try {
             console.log('Ending call...');
             
@@ -819,7 +822,6 @@ class SecureChat {
                 // Hide the persistent local video element only when the stream is fully stopped
                 if (this.localVideo) {
                     this.localVideo.srcObject = null;
-                    this.localVideo.classList.add('hidden');
                 }
             }
             
@@ -855,9 +857,10 @@ class SecureChat {
             
             // Reset video elements
             if (this.remoteVideo) this.remoteVideo.srcObject = null;
-            // NEW: Switch back to text view
-            if (this.videoContainer) this.videoContainer.classList.add('hidden');
-            if (this.chatScreen) this.chatScreen.classList.remove('in-video-call');
+            
+            if (!options.keepUI) {
+                this.switchViewMode('text');
+            }
             
             // Reset button states
             if (this.toggleVideoBtn) this.toggleVideoBtn.innerHTML = '<i class="fas fa-video"></i>';
@@ -872,10 +875,33 @@ class SecureChat {
                 }, 200);
             }
             
-            this.showNotification('Call ended - Continue texting', 'info');
+            if (!options.keepUI) {
+                this.showNotification('Call ended', 'info');
+            }
         } catch (error) {
             console.error('Error ending call:', error);
         }
+    }
+
+    /** Switches between Text and Video interfaces */
+    switchViewMode(mode) {
+        if (mode === 'video') {
+            this.textInterface.classList.add('hidden');
+            this.videoInterface.classList.remove('hidden');
+            // Ensure controls are visible
+            this.callBtn.style.display = 'none'; // Hide call button in video mode
+        } else {
+            this.videoInterface.classList.add('hidden');
+            this.textInterface.classList.remove('hidden');
+            this.callBtn.style.display = 'flex';
+        }
+    }
+
+    /** Switches back to text mode from video interface */
+    switchToTextMode() {
+        // If we are in a call, we might want to end it, or just hide the video.
+        // For this app, "End Call" button in video view ends the call and goes to text.
+        this.endCall({ stopLocalStream: false }); // Keep stream for quick toggle back
     }
     
     /** Toggles the local video track on and off. */
@@ -1033,7 +1059,8 @@ class SecureChat {
         this.showNotification('Partner disconnected', 'warning');
         this.playSound('disconnect');
         this.resetEncryption();
-        this.endCall();
+        // FIX: Don't stop local stream if we are in video mode, so we are ready for next partner without permission prompt
+        this.endCall({ stopLocalStream: this.chatMode !== 'video', keepUI: false });
         this.partnerId = null;
         this.roomId = null;
         this.updatePartnerStatus('Disconnected');
@@ -1100,6 +1127,8 @@ class SecureChat {
                 break;
             case 'chat':
                 this.chatScreen.classList.remove('hidden');
+                // Default to text view initially
+                this.switchViewMode('text');
                 this.messageInput.focus();
                 break;
         }
@@ -1139,6 +1168,11 @@ class SecureChat {
     
     /** Displays a temporary notification toast. */
     showNotification(message, type = 'info') {
+        // Minimal notifications: Remove old ones if there are too many
+        while (this.notificationContainer.children.length >= 1) {
+            this.notificationContainer.removeChild(this.notificationContainer.firstChild);
+        }
+
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         
@@ -1254,62 +1288,12 @@ class SecureChat {
     }
 
     /** Makes a DOM element draggable. */
-    makeDraggable(element) {
-        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-        const parent = element.parentElement; // The container to constrain within
-
-        element.onmousedown = dragMouseDown; 
-
-        function dragMouseDown(e) {
-            e = e || window.event;
-            e.preventDefault();
-            pos3 = e.clientX;
-            pos4 = e.clientY;
-            document.onmouseup = closeDragElement;
-            document.onmousemove = elementDrag;
-        }
-
-        function elementDrag(e) {
-            e = e || window.event;
-            e.preventDefault();
-            // calculate the new cursor position:
-            pos1 = pos3 - e.clientX;
-            pos2 = pos4 - e.clientY;
-            pos3 = e.clientX;
-            pos4 = e.clientY;
-
-            let newTop = element.offsetTop - pos2;
-            let newLeft = element.offsetLeft - pos1;
-
-            // Constrain to parent boundaries
-            const parentRect = parent.getBoundingClientRect();
-            const elemRect = element.getBoundingClientRect();
-
-            if (newTop < 0) newTop = 0;
-            if (newLeft < 0) newLeft = 0;
-            if (newTop + elemRect.height > parentRect.height) {
-                newTop = parentRect.height - elemRect.height;
-            }
-            if (newLeft + elemRect.width > parentRect.width) {
-                newLeft = parentRect.width - elemRect.width;
-            }
-
-            element.style.top = newTop + "px";
-            element.style.left = newLeft + "px";
-            element.style.right = 'auto'; // Clear right/bottom to allow free movement as we set top/left
-            element.style.bottom = 'auto';
-        }
-
-        function closeDragElement() {
-            document.onmouseup = null;
-            document.onmousemove = null;
-        }
-    }
+    // Removed draggable logic as we are using a fixed layout
 
     /** Toggles fullscreen mode for the video container. */
     toggleFullscreen() {
-        if (!document.fullscreenElement) {
-            this.videoContainer.requestFullscreen().catch(err => {
+        if (!document.fullscreenElement && this.videoInterface) {
+            this.videoInterface.requestFullscreen().catch(err => {
                 console.error(`Error attempting to enable fullscreen: ${err.message}`);
             });
         } else {
