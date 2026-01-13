@@ -1963,21 +1963,43 @@ class SecureChat {
                 <h2>Welcome to SecureChat</h2>
                 
                 <div class="welcome-modal-body">
-                    <div class="warning-banner">
-                        <p class="warning-title">
-                            <i class="fas fa-exclamation-triangle"></i> NSFW / MATURE CONTENT (18+)
-                        </p>
-                        <p class="warning-text">
-                            This service is unmoderated. You may encounter explicit content.
-                        </p>
+                    <!-- NSFW Warning Container -->
+                    <div class="glass-container warning-container">
+                        <div class="container-header">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Content Warning (18+)</span>
+                        </div>
+                        <ul class="warning-points">
+                            <li>Unmoderated user-generated content</li>
+                            <li>May contain explicit/NSFW material</li>
+                            <li>Must be 18+ to use this service</li>
+                        </ul>
                     </div>
 
-                    <p class="disclaimer-text">
-                        <strong>Disclaimer:</strong> This is a P2P service. The developer accepts <strong>NO LIABILITY</strong> for user conduct or content. You are solely responsible for your interactions.
-                    </p>
+                    <!-- Liability Disclaimer Container -->
+                    <div class="glass-container disclaimer-container">
+                        <div class="container-header">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Legal Disclaimer</span>
+                        </div>
+                        <ul class="disclaimer-points">
+                            <li>Peer-to-peer communication service</li>
+                            <li>Developer accepts <strong>NO LIABILITY</strong> for user conduct</li>
+                            <li>You are solely responsible for your interactions</li>
+                        </ul>
+                    </div>
 
-                    <div class="privacy-guarantee">
-                        <i class="fas fa-lock"></i> 100% Anonymous & Encrypted
+                    <!-- Privacy Guarantee Container -->
+                    <div class="glass-container privacy-container">
+                        <div class="container-header">
+                            <i class="fas fa-lock"></i>
+                            <span>Privacy Guarantee</span>
+                        </div>
+                        <ul class="privacy-points">
+                            <li>100% Anonymous & End-to-End Encrypted</li>
+                            <li>Zero data retention policy</li>
+                            <li>No logs, cookies, or tracking</li>
+                        </ul>
                     </div>
                 </div>
 
