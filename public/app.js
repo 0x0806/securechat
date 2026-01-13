@@ -2378,3 +2378,4 @@ document.addEventListener('DOMContentLoaded', () => {
  * 4. Add CSS from privacy-styles.css
  * 5. Test all privacy features
  */
+
