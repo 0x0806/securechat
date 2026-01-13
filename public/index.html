@@ -1,18 +1,22 @@
-
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    
+
     <!-- Suggestion 4: Favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
 
     <!-- Primary Meta Tags -->
-    <title>SecureChat - #1 Free Omegle Alternative 2026: Safe Anonymous Random Video Chat with Strangers | No Sign Up, No Registration</title>
+    <title>SecureChat - #1 Free Omegle Alternative 2026: Safe Anonymous Random Video Chat with Strangers | No Sign Up,
+        No Registration</title>
     <meta name="title" content="SecureChat - Anonymous Video & Text Chat">
-    <meta name="description" content="The #1 free Omegle alternative for anonymous video chat and text chat. Connect with strangers worldwide instantly. No registration required. Secure, private, and fast.">
-    <meta name="keywords" content="omegle alternative, free video chat, anonymous chat, talk to strangers, random video chat, omegle clone, secure chat, video dating, online chat, cam to cam, chatroulette alternative">
+    <meta name="description"
+        content="The #1 free Omegle alternative for anonymous video chat and text chat. Connect with strangers worldwide instantly. No registration required. Secure, private, and fast.">
+    <meta name="keywords"
+        content="omegle alternative, free video chat, anonymous chat, talk to strangers, random video chat, omegle clone, secure chat, video dating, online chat, cam to cam, chatroulette alternative">
     <meta name="robots" content="index, follow">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="language" content="English">
@@ -23,15 +27,19 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://securechat.replit.app/"> <!-- Replace with your actual URL -->
     <meta property="og:title" content="SecureChat - Anonymous Video & Text Chat">
-    <meta property="og:description" content="The #1 free Omegle alternative for anonymous video chat and text chat. Connect with strangers worldwide instantly. No registration required.">
-    <meta property="og:image" content="https://via.placeholder.com/1200x630/0f172a/ffffff?text=SecureChat+Omegle+Alternative">
+    <meta property="og:description"
+        content="The #1 free Omegle alternative for anonymous video chat and text chat. Connect with strangers worldwide instantly. No registration required.">
+    <meta property="og:image"
+        content="https://via.placeholder.com/1200x630/0f172a/ffffff?text=SecureChat+Omegle+Alternative">
 
     <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image"> 
+    <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://securechat.replit.app/">
     <meta property="twitter:title" content="SecureChat - Free Omegle Alternative | Anonymous Video Chat">
-    <meta property="twitter:description" content="The #1 free Omegle alternative for anonymous video chat and text chat. Connect with strangers worldwide instantly. No registration required.">
-    <meta property="twitter:image" content="https://via.placeholder.com/1200x630/0f172a/ffffff?text=SecureChat+Omegle+Alternative">
+    <meta property="twitter:description"
+        content="The #1 free Omegle alternative for anonymous video chat and text chat. Connect with strangers worldwide instantly. No registration required.">
+    <meta property="twitter:image"
+        content="https://via.placeholder.com/1200x630/0f172a/ffffff?text=SecureChat+Omegle+Alternative">
 
     <!-- Canonical -->
     <link rel="canonical" href="https://securechat.replit.app/">
@@ -62,6 +70,7 @@
     }
     </script>
 </head>
+
 <body>
     <div class="app-container">
         <!-- Header -->
@@ -69,6 +78,10 @@
             <div class="logo">
                 <i class="fas fa-shield-alt"></i>
                 <span>SecureChat</span>
+                <span class="privacy-badge">
+                    <i class="fas fa-lock"></i>
+                    100% Private
+                </span>
             </div>
             <div class="status-indicator" id="connectionStatus">
                 <i class="fas fa-circle"></i>
@@ -85,7 +98,8 @@
                         <i class="fas fa-comments"></i>
                     </div>
                     <h1>SecureChat </h1>
-                    <p>Connect with strangers around the world anonymously and securely. The best free random video chat app.</p>
+                    <p>Connect with strangers around the world anonymously and securely. The best free random video chat
+                        app.</p>
                     <div class="features">
                         <div class="feature">
                             <i class="fas fa-user-secret"></i>
@@ -100,7 +114,7 @@
                             <span>Secure & Private</span>
                         </div>
                     </div>
-                    
+
                     <div class="terms-container">
                         <label class="checkbox-wrapper">
                             <input type="checkbox" id="termsCheckbox">
@@ -149,23 +163,33 @@
                         </div>
                     </div>
                     <div class="chat-controls">
+                        <!-- NEW: Switch to Video Call Button -->
+                        <button class="control-btn video-call-btn" id="switchToVideoBtn" title="Start Video Call"
+                            aria-label="Start Video Call">
+                            <i class="fas fa-video" aria-hidden="true"></i>
+                        </button>
                         <!-- Suggestion 40: Export Chat -->
-                        <button class="control-btn export-btn" id="exportChatBtn" title="Export Chat" aria-label="Export Chat">
+                        <button class="control-btn export-btn" id="exportChatBtn" title="Export Chat"
+                            aria-label="Export Chat">
                             <i class="fas fa-download" aria-hidden="true"></i>
                         </button>
                         <!-- Suggestion 8: Auto-Skip Toggle -->
-                        <button class="control-btn auto-skip-btn" id="autoSkipBtn" title="Toggle Auto-Skip" aria-label="Toggle Auto-Skip">
+                        <button class="control-btn auto-skip-btn" id="autoSkipBtn" title="Toggle Auto-Skip"
+                            aria-label="Toggle Auto-Skip">
                             <i class="fas fa-sync-alt" aria-hidden="true"></i>
                         </button>
                         <!-- Suggestion 4: Report Button -->
-                        <button class="control-btn report-btn" id="reportBtn" title="Report Partner" aria-label="Report Partner">
+                        <button class="control-btn report-btn" id="reportBtn" title="Report Partner"
+                            aria-label="Report Partner">
                             <i class="fas fa-flag" aria-hidden="true"></i>
                         </button>
                         <!-- Suggestion 5: Clear Chat Button -->
-                        <button class="control-btn clear-chat-btn" id="clearChatBtn" title="Clear Chat History" aria-label="Clear Chat History">
+                        <button class="control-btn clear-chat-btn" id="clearChatBtn" title="Clear Chat History"
+                            aria-label="Clear Chat History">
                             <i class="fas fa-trash-alt" aria-hidden="true"></i>
                         </button>
-                        <button class="control-btn skip-btn" id="skipBtn" title="Skip Partner (Esc)" aria-label="Skip Partner">
+                        <button class="control-btn skip-btn" id="skipBtn" title="Skip Partner (Esc)"
+                            aria-label="Skip Partner">
                             <i class="fas fa-step-forward" aria-hidden="true"></i>
                         </button>
                     </div>
@@ -183,7 +207,7 @@
                     <button class="scroll-bottom-btn hidden" id="scrollBottomBtn" title="Scroll to Bottom">
                         <i class="fas fa-arrow-down"></i>
                     </button>
-                    
+
                     <div class="typing-indicator hidden" id="typingIndicator">
                         <div class="typing-dots">
                             <span></span>
@@ -217,7 +241,7 @@
                         <video id="localVideo" muted autoplay playsinline></video>
                     </div>
                 </div>
-                
+
                 <div class="video-controls">
                     <button class="video-control-btn" id="toggleVideoBtn" title="Toggle Camera">
                         <i class="fas fa-video"></i>
@@ -280,4 +304,5 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="app.js"></script>
 </body>
+
 </html>
