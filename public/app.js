@@ -1,4 +1,8 @@
-
+/**
+ * @class SecureChat
+ * @description Manages the entire frontend logic for the SecureChat application,
+ * including UI, WebSocket communication, WebRTC video/audio calls, and E2E encryption.
+ */
 class SecureChat {
     constructor() {
         this.socket = io();
@@ -16,13 +20,21 @@ class SecureChat {
         this.titleInterval = null;
         this.keyPair = null;
         this.sharedSecret = null;
+        this.audioContext = null;
+        this.reconnectTimer = null;
         
         this.initializeElements();
         this.bindEvents();
         this.setupSocketEvents();
         this.setupRTC();
+        this.initAudio();
     }
-    
+
+    // --- Initialization & Setup ---
+
+    /**
+     * Caches all necessary DOM elements for performance.
+     */
     initializeElements() {
         // Screens
         this.welcomeScreen = document.getElementById('welcomeScreen');
@@ -33,27 +45,40 @@ class SecureChat {
         this.startChatBtn = document.getElementById('startChatBtn');
         this.startVideoChatBtn = document.getElementById('startVideoChatBtn');
         this.termsCheckbox = document.getElementById('termsCheckbox');
+        this.termsCheckbox.setAttribute('aria-label', 'Accept terms and conditions');
+
         this.cancelWaitBtn = document.getElementById('cancelWaitBtn');
         this.sendBtn = document.getElementById('sendBtn');
+        this.sendBtn.setAttribute('aria-label', 'Send message');
         this.skipBtn = document.getElementById('skipBtn');
+        this.skipBtn.setAttribute('aria-label', 'Skip to a new partner');
         this.callBtn = document.getElementById('callBtn');
+        this.callBtn.setAttribute('aria-label', 'Start video call');
         
         // Video elements
         this.localVideo = document.getElementById('localVideo');
         this.remoteVideo = document.getElementById('remoteVideo');
         this.videoContainer = document.getElementById('videoContainer');
         this.toggleVideoBtn = document.getElementById('toggleVideoBtn');
+        this.toggleVideoBtn.setAttribute('aria-label', 'Toggle your video');
         this.toggleAudioBtn = document.getElementById('toggleAudioBtn');
+        this.toggleAudioBtn.setAttribute('aria-label', 'Toggle your microphone');
         this.endCallBtn = document.getElementById('endCallBtn');
+        this.endCallBtn.setAttribute('aria-label', 'End call');
         this.fullscreenBtn = document.getElementById('fullscreenBtn');
+        this.fullscreenBtn.setAttribute('aria-label', 'Toggle fullscreen');
         
         // Chat elements
         this.messageInput = document.getElementById('messageInput');
+        this.messageInput.setAttribute('aria-label', 'Type your message');
         this.chatMessages = document.getElementById('chatMessages');
+        this.chatMessages.setAttribute('role', 'log');
+        this.chatMessages.setAttribute('aria-live', 'polite');
         this.typingIndicator = document.getElementById('typingIndicator');
         this.partnerStatus = document.getElementById('partnerStatus');
         
         this.emojiBtn = document.getElementById('emojiBtn');
+        this.emojiBtn.setAttribute('aria-label', 'Open emoji picker');
         this.emojiPicker = document.getElementById('emojiPicker');
 
         // Modal elements
@@ -64,8 +89,12 @@ class SecureChat {
         // Other elements
         this.connectionStatus = document.getElementById('connectionStatus');
         this.notificationContainer = document.getElementById('notificationContainer');
+        this.notificationContainer.setAttribute('aria-live', 'assertive');
     }
-    
+
+    /**
+     * Binds all DOM event listeners to their respective handlers.
+     */
     bindEvents() {
         this.startChatBtn.addEventListener('click', () => {
             this.chatMode = 'text';
@@ -75,10 +104,17 @@ class SecureChat {
             this.chatMode = 'video';
             this.startChat();
         });
+
+        this.termsCheckbox.addEventListener('change', () => {
+            const isChecked = this.termsCheckbox.checked;
+            this.startChatBtn.disabled = !isChecked;
+            this.startVideoChatBtn.disabled = !isChecked;
+        });
         this.cancelWaitBtn.addEventListener('click', () => this.cancelWait());
         this.sendBtn.addEventListener('click', () => this.sendMessage());
         this.skipBtn.addEventListener('click', () => this.skipPartner());
         this.callBtn.addEventListener('click', () => this.initiateCall());
+        this.skipBtn.title = 'Skip to a new partner (Esc)';
         
         this.endCallBtn.addEventListener('click', () => this.endCall());
         this.toggleVideoBtn.addEventListener('click', () => this.toggleVideo());
@@ -119,10 +155,20 @@ class SecureChat {
         this.setupEmojiPicker();
     }
 
+    /**
+     * Sets up all Socket.IO event listeners.
+     */
     setupSocketEvents() {
         this.socket.on('connect', () => {
             this.updateConnectionStatus(true);
             this.showNotification('Connected to SecureChat', 'success');
+            
+            // UX: If we reconnected while in a chat or waiting, the server state is lost.
+            // We must reset to home to avoid a broken UI state.
+            if (this.currentScreen === 'chat' || this.currentScreen === 'waiting') {
+                this.showNotification('Session restored - Please start a new search', 'info');
+                this.resetToHome();
+            }
         });
         
         this.socket.on('disconnect', () => {
@@ -130,6 +176,11 @@ class SecureChat {
             this.showNotification('Connection lost. Attempting to reconnect...', 'error');
         });
         
+        // Handle generic socket errors (like rate limiting)
+        this.socket.on('error', (err) => {
+            this.showNotification(err.message || 'An error occurred', 'error');
+        });
+
         this.socket.on('waiting-for-partner', () => {
             this.showScreen('waiting');
         });
@@ -166,16 +217,27 @@ class SecureChat {
         });
         
         this.socket.on('message-received', async (data) => {
+            // UX: Handle confirmation of our own sent message
+            if (data.senderId === this.socket.id && data.id) {
+                this.confirmMessageSent(data.id);
+                return; // Don't display our own message twice
+            }
+
+            let wasEncrypted = false;
+            let isSystemHtml = false;
             if (data.senderId !== this.socket.id) {
                 // Attempt to decrypt if encryption is active
                 if (this.sharedSecret) {
                     const decrypted = await this.decryptMessage(data.message);
-                    if (decrypted) data.message = decrypted;
+                    if (decrypted) {
+                        data.message = decrypted;
+                        wasEncrypted = true;
+                    }
                 } else if (data.message.includes('"iv":') && data.message.includes('"content":')) {
-                    // Handle race condition: Encrypted message arrived before key exchange completed
                     data.message = '🔒 <i>Encrypted message (waiting for key...)</i>';
+                    isSystemHtml = true;
                 }
-                this.displayMessage(data.message, false, data.timestamp);
+                this.displayMessage(data.message, false, data.timestamp, wasEncrypted, isSystemHtml);
                 this.playSound('message');
                 this.flashTitle('New Message!');
             }
@@ -230,10 +292,16 @@ class SecureChat {
         });
     }
     
+    /**
+     * Initializes the RTCPeerConnection with STUN servers and event handlers.
+     * This is the core of the WebRTC functionality.
+     */
     setupRTC() {
         // Close existing connection if it exists
         if (this.peerConnection) {
-            this.peerConnection.close();
+            if (this.peerConnection.connectionState !== 'closed') {
+                this.peerConnection.close();
+            }
         }
         
         const configuration = {
@@ -252,16 +320,12 @@ class SecureChat {
         
         this.peerConnection.onicecandidate = (event) => {
             if (event.candidate && this.partnerId && this.roomId) {
-                console.log('Sending ICE candidate:', event.candidate);
-                this.socket.emit('ice-candidate', { 
-                    candidate: event.candidate,
-                    roomId: this.roomId 
-                });
+                this.socket.emit('ice-candidate', { candidate: event.candidate });
             }
         };
         
         this.peerConnection.ontrack = (event) => {
-            console.log('Remote stream received:', event.streams);
+            console.log('Remote stream received.');
             if (event.streams && event.streams[0]) {
                 this.remoteStream = event.streams[0];
                 this.remoteVideo.srcObject = this.remoteStream;
@@ -270,16 +334,16 @@ class SecureChat {
         };
         
         this.peerConnection.onconnectionstatechange = () => {
-            console.log('Connection state:', this.peerConnection.connectionState);
+            console.log('PeerConnection state:', this.peerConnection.connectionState);
             switch(this.peerConnection.connectionState) {
                 case 'connected':
                     this.showNotification('Video call connected', 'success');
                     break;
                 case 'disconnected':
-                    console.log('Peer connection disconnected');
+                    this.showNotification('Connection unstable, trying to reconnect...', 'warning');
                     break;
                 case 'failed':
-                    console.log('Peer connection failed, attempting restart');
+                    this.showNotification('Connection failed, attempting to restart...', 'error');
                     this.restartIce();
                     break;
                 case 'closed':
@@ -292,18 +356,14 @@ class SecureChat {
         };
         
         this.peerConnection.onicegatheringstatechange = () => {
-            console.log('ICE gathering state:', this.peerConnection.iceGatheringState);
+            // For debugging: e.g., 'gathering', 'complete'
         };
         
         this.peerConnection.oniceconnectionstatechange = () => {
             console.log('ICE connection state:', this.peerConnection.iceConnectionState);
             switch(this.peerConnection.iceConnectionState) {
                 case 'failed':
-                    console.log('ICE connection failed, restarting ICE');
                     this.restartIce();
-                    break;
-                case 'disconnected':
-                    console.log('ICE connection disconnected');
                     break;
                 case 'connected':
                     console.log('ICE connection established');
@@ -313,7 +373,7 @@ class SecureChat {
         
         this.peerConnection.onnegotiationneeded = async () => {
             console.log('Negotiation needed');
-            if (this.peerConnection.signalingState !== 'stable') {
+            if (this.peerConnection.signalingState !== 'stable' || !this.isInCall) {
                 console.log('Signaling state not stable, skipping negotiation');
                 return;
             }
@@ -324,7 +384,25 @@ class SecureChat {
             }
         };
     }
-    
+
+    /**
+     * Initializes the Web Audio API context for sound playback.
+     * This is done once to improve performance.
+     */
+    initAudio() {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) {
+                this.audioContext = new AudioContext();
+            }
+        } catch (e) {
+            console.warn("Web Audio API is not supported in this browser.");
+        }
+    }
+
+    // --- Core Application Logic ---
+
+    /** Attempts to restart the ICE connection, a recovery mechanism for failed WebRTC calls. */
     async restartIce() {
         if (this.peerConnection && this.peerConnection.connectionState !== 'closed') {
             try {
@@ -337,6 +415,7 @@ class SecureChat {
         }
     }
     
+    /** Creates and sends a WebRTC offer to the partner. */
     async createAndSendOffer() {
         try {
             if (this.peerConnection.signalingState !== 'stable') {
@@ -350,18 +429,16 @@ class SecureChat {
             });
             
             await this.peerConnection.setLocalDescription(offer);
-            console.log('Sending offer');
-            this.socket.emit('offer', { 
-                offer: offer,
-                roomId: this.roomId 
-            });
+            console.log('Sending offer.');
+            this.socket.emit('offer', { offer });
         } catch (error) {
             console.error('Error creating/sending offer:', error);
             this.showNotification('Failed to create call offer', 'error');
             this.endCall();
         }
     }
-    
+
+    /** Starts the process of finding a partner. */
     startChat() {
         if (!this.termsCheckbox.checked) {
             this.showNotification('Please accept the terms first', 'warning');
@@ -376,10 +453,13 @@ class SecureChat {
         });
     }
     
+    /** Cancels the search for a partner. */
     cancelWait() {
+        this.socket.emit('leave-queue');
         this.showScreen('welcome');
     }
     
+    /** Encrypts (if possible) and sends a text message. */
     async sendMessage() {
         const message = this.messageInput.value.trim();
         if (!message) {
@@ -391,34 +471,44 @@ class SecureChat {
             return;
         }
         
-        if (message.length > 500) {
+        if (message.length > 2000) {
             this.showNotification('Message too long', 'warning');
             return;
         }
         
+        const msgId = `${Date.now()}-${Math.random()}`;
         let messageToSend = message;
         
         // Encrypt if shared secret exists
         if (this.sharedSecret) {
             const encrypted = await this.encryptMessage(message);
+            // Note: We display the unencrypted message locally for the sender.
             if (encrypted) messageToSend = encrypted;
         }
 
-        this.socket.emit('send-message', { message: messageToSend });
-        this.displayMessage(message, true);
+        this.socket.emit('send-message', { message: messageToSend, id: msgId });
+        this.displayMessage(message, true, Date.now(), !!this.sharedSecret, false, msgId);
         this.messageInput.value = '';
         this.stopTyping();
     }
     
+    /** Disconnects from the current partner and finds a new one. */
     skipPartner() {
+        if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
         this.resetEncryption();
         this.socket.emit('skip-partner');
         this.endCall();
         this.clearChat();
         this.showScreen('waiting');
         this.showNotification('Finding a new partner...', 'info');
+        this.startChat();
     }
     
+    // --- Video & Call Management ---
+
+    /**
+     * Requests access to the user's camera and microphone and displays the local video stream.
+     */
     async startLocalVideo() {
         if (this.localStream) return;
         
@@ -445,18 +535,28 @@ class SecureChat {
             }
             
             this.localVideo.srcObject = this.localStream;
+            this.localVideo.muted = true; // Fix: Mute local video to prevent feedback
             this.toggleVideoBtn.style.display = 'flex';
             this.toggleAudioBtn.style.display = 'flex';
         } catch (error) {
-            console.error('Media access error:', error);
-            this.showNotification('Camera/microphone access denied', 'error');
+            console.error('Media access error:', error.name, error.message);
+            let userMessage = 'Could not access camera/microphone.';
+            if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                userMessage = 'Permission for camera/mic was denied. Please allow it in your browser settings.';
+            } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                userMessage = 'No camera/microphone found on your device.';
+            } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+                userMessage = 'Your camera/microphone is being used by another application.';
+            }
+            this.showNotification(userMessage, 'error');
             this.videoContainer.classList.add('hidden');
             throw error;
         } finally {
             this.isStartingVideo = false;
         }
     }
-
+    
+    /** Initiates a video call request to the partner. */
     async initiateCall() {
         if (!this.partnerId) {
             this.showNotification('No partner connected', 'warning');
@@ -470,7 +570,7 @@ class SecureChat {
         
         try {
             await this.startLocalVideo();
-            this.showNotification('Starting call...', 'info');
+            this.showNotification('Waiting for partner to accept call...', 'info');
             this.socket.emit('video-call-request');
             
         } catch (error) {
@@ -478,14 +578,17 @@ class SecureChat {
         }
     }
     
+    /** Shows the incoming call request modal. */
     showCallRequestModal() {
         this.callRequestModal.classList.remove('hidden');
     }
     
+    /** Hides the incoming call request modal. */
     hideCallRequestModal() {
         this.callRequestModal.classList.add('hidden');
     }
     
+    /** Accepts an incoming video call request. */
     async acceptCall() {
         this.hideCallRequestModal();
         try {
@@ -498,6 +601,7 @@ class SecureChat {
         }
     }
     
+    /** Declines an incoming video call request. */
     declineCall() {
         this.hideCallRequestModal();
         this.socket.emit('video-call-response', { accepted: false });
@@ -510,6 +614,7 @@ class SecureChat {
         }
     }
     
+    /** Starts the WebRTC call by adding local media tracks to the peer connection. */
     async startCall() {
         if (!this.localStream) {
             this.showNotification('No local stream available', 'error');
@@ -534,6 +639,8 @@ class SecureChat {
             // Wait a bit for cleanup
             await new Promise(resolve => setTimeout(resolve, 100));
             
+            this.isInCall = true; // Fix: Set state before adding tracks to ensure negotiation triggers
+
             // Add new tracks to peer connection
             this.localStream.getTracks().forEach(track => {
                 console.log('Adding track:', track.kind, track.enabled);
@@ -543,7 +650,6 @@ class SecureChat {
             // Set up local video display
             this.localVideo.srcObject = this.localStream;
             this.videoContainer.classList.remove('hidden');
-            this.isInCall = true;
             
             // Update button states based on available tracks
             const hasVideo = this.localStream.getVideoTracks().length > 0;
@@ -560,9 +666,10 @@ class SecureChat {
         }
     }
     
+    /** Handles an incoming WebRTC offer from the partner. */
     async handleOffer(offer) {
         try {
-            console.log('Handling offer, current signaling state:', this.peerConnection.signalingState);
+            console.log('Handling offer...');
             
             // Ensure video is ready if in video mode
             if (this.chatMode === 'video' && !this.localStream) {
@@ -622,11 +729,8 @@ class SecureChat {
             });
             
             await this.peerConnection.setLocalDescription(answer);
-            console.log('Sending answer');
-            this.socket.emit('answer', { 
-                answer: answer,
-                roomId: this.roomId 
-            });
+            console.log('Sending answer.');
+            this.socket.emit('answer', { answer });
             
             console.log('Answer sent successfully');
         } catch (error) {
@@ -636,6 +740,7 @@ class SecureChat {
         }
     }
     
+    /** Handles an incoming WebRTC answer from the partner. */
     async handleAnswer(answer) {
         try {
             console.log('Handling answer, current signaling state:', this.peerConnection.signalingState);
@@ -655,6 +760,7 @@ class SecureChat {
         }
     }
     
+    /** Handles an incoming ICE candidate from the partner. */
     async handleIceCandidate(candidate) {
         try {
             if (candidate && this.peerConnection.remoteDescription) {
@@ -673,6 +779,7 @@ class SecureChat {
         }
     }
     
+    /** Processes any ICE candidates that were received before the connection was ready. */
     async processQueuedCandidates() {
         if (this.queuedCandidates && this.queuedCandidates.length > 0) {
             console.log('Processing queued ICE candidates:', this.queuedCandidates.length);
@@ -688,6 +795,7 @@ class SecureChat {
         }
     }
     
+    /** Gracefully ends the call, stopping all media tracks and cleaning up connections. */
     endCall() {
         try {
             console.log('Ending call...');
@@ -755,6 +863,7 @@ class SecureChat {
         }
     }
     
+    /** Toggles the local video track on and off. */
     toggleVideo() {
         if (this.localStream) {
             const videoTrack = this.localStream.getVideoTracks()[0];
@@ -766,6 +875,7 @@ class SecureChat {
         }
     }
     
+    /** Toggles the local audio track on and off. */
     toggleAudio() {
         if (this.localStream) {
             const audioTrack = this.localStream.getAudioTracks()[0];
@@ -777,13 +887,56 @@ class SecureChat {
         }
     }
     
-    displayMessage(message, isOwn, timestamp = Date.now()) {
+    // --- UI & Display Management ---
+
+    /**
+     * Displays a message in the chat window.
+     * @param {string} message - The message content.
+     * @param {boolean} isOwn - True if the message is from the current user.
+     * @param {number} [timestamp=Date.now()] - The message timestamp.
+     * @param {boolean} [isEncrypted=false] - True if the message was E2E encrypted.
+     * @param {boolean} [isSystemHtml=false] - True if the message contains trusted system HTML.
+     * @param {string|null} [messageId=null] - A unique ID for the message, used for delivery status.
+     */
+    displayMessage(message, isOwn, timestamp = Date.now(), isEncrypted = false, isSystemHtml = false, messageId = null) {
+        // Smart scroll detection: Check if user is near bottom BEFORE adding message
+        const threshold = 100; // px
+        const isNearBottom = this.chatMessages.scrollHeight - this.chatMessages.scrollTop - this.chatMessages.clientHeight <= threshold;
+
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isOwn ? 'own' : 'partner'}`;
+        if (messageId) {
+            messageDiv.dataset.messageId = messageId;
+        }
         
         const messageText = document.createElement('div');
-        messageText.textContent = message;
+        messageText.className = 'message-text';
+        if (isSystemHtml) {
+            messageText.innerHTML = message; // Only use innerHTML for trusted system messages
+        } else {
+            messageText.textContent = message; // Use textContent for user input to prevent XSS
+        }
         messageDiv.appendChild(messageText);
+
+        // UX: Add a copy button to all messages
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-message-btn';
+        copyBtn.innerHTML = '<i class="far fa-copy"></i>';
+        copyBtn.setAttribute('aria-label', 'Copy message text');
+        copyBtn.title = 'Copy message';
+        copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(messageText.textContent).then(() => {
+                copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+                this.showNotification('Message copied!', 'success');
+                setTimeout(() => {
+                    copyBtn.innerHTML = '<i class="far fa-copy"></i>';
+                }, 1500);
+            }).catch(err => {
+                this.showNotification('Failed to copy message', 'error');
+                console.error('Failed to copy: ', err);
+            });
+        });
+        messageDiv.appendChild(copyBtn);
         
         const timeDiv = document.createElement('div');
         timeDiv.className = 'message-timestamp';
@@ -792,11 +945,44 @@ class SecureChat {
             minute: '2-digit'
         });
         messageDiv.appendChild(timeDiv);
+
+        if (isOwn && messageId) {
+            const statusIcon = document.createElement('i');
+            statusIcon.className = 'fas fa-clock message-status-icon'; // Pending icon
+            statusIcon.setAttribute('aria-label', 'Sending');
+            statusIcon.title = 'Sending...';
+            timeDiv.prepend(statusIcon);
+        }
+
+        if (isEncrypted) {
+            const lockIcon = document.createElement('i');
+            lockIcon.setAttribute('aria-hidden', 'true');
+            lockIcon.className = 'fas fa-lock message-lock-icon';
+            lockIcon.title = 'End-to-end encrypted';
+            timeDiv.prepend(lockIcon);
+        }
         
         this.chatMessages.appendChild(messageDiv);
-        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+        
+        if (isOwn || isNearBottom) {
+            this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+        }
+    }
+
+    /** UX: Confirms a message was sent by updating its status icon. */
+    confirmMessageSent(messageId) {
+        const messageDiv = this.chatMessages.querySelector(`[data-message-id="${messageId}"]`);
+        if (messageDiv) {
+            const statusIcon = messageDiv.querySelector('.message-status-icon');
+            if (statusIcon) {
+                statusIcon.className = 'fas fa-check message-status-icon'; // Delivered icon
+                statusIcon.setAttribute('aria-label', 'Sent');
+                statusIcon.title = 'Sent';
+            }
+        }
     }
     
+    /** Handles the logic for sending 'typing' events. */
     handleTyping() {
         if (!this.isTyping) {
             this.isTyping = true;
@@ -809,6 +995,7 @@ class SecureChat {
         }, 2000);
     }
     
+    /** Stops sending 'typing' events. */
     stopTyping() {
         if (this.isTyping) {
             this.isTyping = false;
@@ -817,6 +1004,7 @@ class SecureChat {
         clearTimeout(this.typingTimer);
     }
     
+    /** Shows or hides the 'partner is typing' indicator. */
     showTypingIndicator(show) {
         if (show) {
             this.typingIndicator.classList.remove('hidden');
@@ -825,21 +1013,31 @@ class SecureChat {
         }
     }
     
+    /** Handles the partner disconnecting from the chat. */
     handlePartnerDisconnect() {
+        this.showNotification('Partner disconnected', 'warning');
+        this.playSound('disconnect');
         this.resetEncryption();
         this.endCall();
         this.partnerId = null;
         this.roomId = null;
         this.updatePartnerStatus('Disconnected');
-        this.showNotification('Partner disconnected. Finding a new one...', 'warning');
-        
-        setTimeout(() => {
+        this.showTypingIndicator(false);
+
+        // UX: Disable input and show a message in the chat window for a smoother transition
+        this.messageInput.disabled = true;
+        this.sendBtn.disabled = true;
+        this.displaySystemMessage('Finding a new partner for you in 3 seconds...');
+
+        this.reconnectTimer = setTimeout(() => {
             this.clearChat();
-            this.showScreen('waiting');
+            this.messageInput.disabled = false;
+            this.sendBtn.disabled = false;
             this.startChat();
-        }, 2000);
+        }, 3000);
     }
     
+    /** Clears all messages from the chat window. */
     clearChat() {
         this.chatMessages.innerHTML = `
             <div class="system-message">
@@ -849,7 +1047,28 @@ class SecureChat {
         `;
         this.showTypingIndicator(false);
     }
+
+    /** Displays a system message directly in the chat window. */
+    displaySystemMessage(message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'system-message';
+        messageDiv.innerHTML = `<i class="fas fa-info-circle"></i> <span>${message}</span>`;
+        this.chatMessages.appendChild(messageDiv);
+        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+    }
+
+    /** Resets the app to the welcome screen and cleans up state. */
+    resetToHome() {
+        if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+        this.resetEncryption();
+        this.endCall();
+        this.clearChat();
+        this.showScreen('welcome');
+        this.partnerId = null;
+        this.roomId = null;
+    }
     
+    /** Switches the visible screen in the UI. */
     showScreen(screen) {
         // Hide all screens
         this.welcomeScreen.classList.add('hidden');
@@ -873,6 +1092,7 @@ class SecureChat {
         this.currentScreen = screen;
     }
     
+    /** Updates the global connection status indicator in the header. */
     updateConnectionStatus(connected) {
         const statusIcon = this.connectionStatus.querySelector('i');
         const statusText = this.connectionStatus.querySelector('span');
@@ -886,6 +1106,7 @@ class SecureChat {
         }
     }
     
+    /** Updates the partner's status (Online, Disconnected, etc.). */
     updatePartnerStatus(status) {
         this.partnerStatus.textContent = status;
         
@@ -901,6 +1122,7 @@ class SecureChat {
         }
     }
     
+    /** Displays a temporary notification toast. */
     showNotification(message, type = 'info') {
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
@@ -908,15 +1130,18 @@ class SecureChat {
         const icon = document.createElement('i');
         switch (type) {
             case 'success':
+                notification.setAttribute('role', 'status');
                 icon.className = 'fas fa-check-circle';
                 break;
             case 'warning':
                 icon.className = 'fas fa-exclamation-triangle';
                 break;
             case 'error':
+                notification.setAttribute('role', 'alert');
                 icon.className = 'fas fa-times-circle';
                 break;
             default:
+                notification.setAttribute('role', 'status');
                 icon.className = 'fas fa-info-circle';
         }
         
@@ -939,12 +1164,14 @@ class SecureChat {
         }, 4000);
     }
     
+    /** Plays a sound effect using the Web Audio API. */
     playSound(type) {
         try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) return;
-            
-            const ctx = new AudioContext();
+            if (!this.audioContext || this.audioContext.state === 'suspended') {
+                this.audioContext?.resume();
+            }
+            if (!this.audioContext) return;
+            const ctx = this.audioContext;
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             
@@ -999,16 +1226,19 @@ class SecureChat {
         }
     }
     
+    /** Handles the browser window gaining focus. */
     handleWindowFocus() {
         // Resume any paused functionality when window gains focus
         this.stopTitleFlash();
     }
     
+    /** Handles the browser window losing focus. */
     handleWindowBlur() {
         // Pause typing when window loses focus
         this.stopTyping();
     }
 
+    /** Makes a DOM element draggable. */
     makeDraggable(element) {
         let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
         element.onmousedown = dragMouseDown;
@@ -1041,6 +1271,7 @@ class SecureChat {
         }
     }
 
+    /** Toggles fullscreen mode for the video container. */
     toggleFullscreen() {
         if (!document.fullscreenElement) {
             this.videoContainer.requestFullscreen().catch(err => {
@@ -1051,6 +1282,7 @@ class SecureChat {
         }
     }
 
+    /** Populates the emoji picker with a predefined list of emojis. */
     setupEmojiPicker() {
         const emojis = ['😀', '😂', '😍', '😎', '🤔', '😭', '😡', '👍', '👎', '❤️', '🔥', '✨', '👋', '👻', '🎉', '👀', '💯', '💩', '🤡', '🚀'];
         
@@ -1074,10 +1306,12 @@ class SecureChat {
         });
     }
 
+    /** Toggles the visibility of the emoji picker. */
     toggleEmojiPicker() {
         this.emojiPicker.classList.toggle('hidden');
     }
 
+    /** Flashes the document title to grab the user's attention when the window is not focused. */
     flashTitle(message) {
         if (!document.hidden) return;
         if (this.titleInterval) clearInterval(this.titleInterval);
@@ -1089,6 +1323,7 @@ class SecureChat {
         }, 1000);
     }
 
+    /** Stops the title from flashing and restores the original title. */
     stopTitleFlash() {
         if (this.titleInterval) {
             clearInterval(this.titleInterval);
@@ -1099,6 +1334,9 @@ class SecureChat {
 
     // --- Encryption Methods ---
 
+    /**
+     * Initializes the E2E encryption by generating an ECDH key pair and exchanging public keys.
+     */
     async initEncryption() {
         try {
             this.keyPair = await window.crypto.subtle.generateKey(
@@ -1118,6 +1356,9 @@ class SecureChat {
         }
     }
 
+    /**
+     * Handles the public key from the partner and derives the shared secret.
+     */
     async handleKeyExchange(data) {
         if (data.senderId === this.socket.id) return;
         
@@ -1145,6 +1386,10 @@ class SecureChat {
         }
     }
 
+    /**
+     * Encrypts a text message using the shared AES-GCM key.
+     * @param {string} text - The plaintext message to encrypt.
+     */
     async encryptMessage(text) {
         try {
             const enc = new TextEncoder();
@@ -1167,6 +1412,10 @@ class SecureChat {
         }
     }
 
+    /**
+     * Decrypts an incoming message payload.
+     * @param {string} encryptedData - The JSON string containing the IV and ciphertext.
+     */
     async decryptMessage(encryptedData) {
         try {
             const data = JSON.parse(encryptedData);
@@ -1186,12 +1435,16 @@ class SecureChat {
         }
     }
 
+    /** Resets all encryption-related state. */
     resetEncryption() {
         this.sharedSecret = null;
         this.keyPair = null;
         this.updateSecurityIcon(false);
     }
 
+    /**
+     * Updates the main logo icon to show a lock when encryption is active.
+     */
     updateSecurityIcon(isSecure) {
         const logoIcon = document.querySelector('.logo i');
         if (logoIcon) {
@@ -1211,6 +1464,10 @@ class SecureChat {
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     new SecureChat();
+    // Disable start buttons until terms are checked
+    const termsCheckbox = document.getElementById('termsCheckbox');
+    document.getElementById('startChatBtn').disabled = !termsCheckbox.checked;
+    document.getElementById('startVideoChatBtn').disabled = !termsCheckbox.checked;
 });
 
 // PWA capabilities can be added later with proper service worker implementation
