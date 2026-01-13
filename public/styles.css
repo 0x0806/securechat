@@ -2164,6 +2164,8 @@ input:focus-visible {
         padding: 8px 15px;
         gap: 8px;
         bottom: 20px;
+        /* Safe Area for iOS Home Bar */
+        margin-bottom: env(safe-area-inset-bottom);
         justify-content: space-between;
         background: rgba(0, 0, 0, 0.85);
         /* Darker for legibility */
@@ -2175,6 +2177,13 @@ input:focus-visible {
         height: 42px;
         min-width: 42px;
         font-size: 1rem;
+        /* Better touch feedback */
+        -webkit-tap-highlight-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .video-control-btn:active {
+        transform: scale(0.9);
+        background: rgba(255, 255, 255, 0.3);
     }
 
     /* Move local video out of the way */
@@ -2182,7 +2191,8 @@ input:focus-visible {
         width: 100px;
         height: 150px;
         top: 20px;
-        /* Move to TOP right on mobile */
+        /* Safe Area for iOS Notch */
+        margin-top: env(safe-area-inset-top);
         right: 20px;
         bottom: auto;
         border: 1px solid rgba(255, 255, 255, 0.3);
@@ -2196,5 +2206,33 @@ input:focus-visible {
     .status-indicator span {
         display: none;
         /* Hide text, keep dot */
+    }
+}
+
+/* Landscape Mobile Fixes */
+@media (max-width: 900px) and (orientation: landscape) and (max-height: 500px) {
+    .video-controls {
+        flex-direction: column;
+        width: auto;
+        right: 20px;
+        bottom: 50%;
+        left: auto;
+        transform: translateY(50%);
+        padding: 10px 8px;
+        border-radius: 30px;
+    }
+
+    .local-video-wrapper {
+        top: 20px;
+        left: 20px;
+        /* Switch side to avoid controls */
+        right: auto;
+        width: 120px;
+        height: 90px;
+    }
+
+    .chat-screen {
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
     }
 }
