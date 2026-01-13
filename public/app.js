@@ -28,6 +28,8 @@ class SecureChat {
         this.setupSocketEvents();
         this.setupRTC();
         this.initAudio();
+        // Move local video to a persistent container to be visible across screens
+        this.mainContent.appendChild(this.localVideo);
     }
 
     // --- Initialization & Setup ---
@@ -40,6 +42,7 @@ class SecureChat {
         this.welcomeScreen = document.getElementById('welcomeScreen');
         this.waitingScreen = document.getElementById('waitingScreen');
         this.chatScreen = document.getElementById('chatScreen');
+        this.mainContent = document.querySelector('.main-content');
         
         // Buttons
         this.startChatBtn = document.getElementById('startChatBtn');
@@ -90,6 +93,7 @@ class SecureChat {
         this.connectionStatus = document.getElementById('connectionStatus');
         this.notificationContainer = document.getElementById('notificationContainer');
         this.notificationContainer.setAttribute('aria-live', 'assertive');
+        this.localVideo.classList.add('hidden'); // Hide persistent local video initially
     }
 
     /**
@@ -116,7 +120,7 @@ class SecureChat {
         this.callBtn.addEventListener('click', () => this.initiateCall());
         this.skipBtn.title = 'Skip to a new partner (Esc)';
         
-        this.endCallBtn.addEventListener('click', () => this.endCall());
+        this.endCallBtn.addEventListener('click', () => this.endCall({ stopLocalStream: true }));
         this.toggleVideoBtn.addEventListener('click', () => this.toggleVideo());
         this.toggleAudioBtn.addEventListener('click', () => this.toggleAudio());
         
@@ -497,7 +501,8 @@ class SecureChat {
         if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
         this.resetEncryption();
         this.socket.emit('skip-partner');
-        this.endCall();
+        // Clean up call but keep local video stream for next partner for a seamless UX
+        this.endCall({ stopLocalStream: false });
         this.clearChat();
         this.showScreen('waiting');
         this.showNotification('Finding a new partner...', 'info');
@@ -536,6 +541,7 @@ class SecureChat {
             
             this.localVideo.srcObject = this.localStream;
             this.localVideo.muted = true; // Fix: Mute local video to prevent feedback
+            this.localVideo.classList.remove('hidden'); // Show the persistent local video element
             this.toggleVideoBtn.style.display = 'flex';
             this.toggleAudioBtn.style.display = 'flex';
         } catch (error) {
@@ -647,8 +653,8 @@ class SecureChat {
                 this.peerConnection.addTrack(track, this.localStream);
             });
             
-            // Set up local video display
-            this.localVideo.srcObject = this.localStream;
+            // NEW: Switch to video view by hiding chat elements and showing video container
+            this.chatScreen.classList.add('in-video-call');
             this.videoContainer.classList.remove('hidden');
             
             // Update button states based on available tracks
@@ -711,7 +717,8 @@ class SecureChat {
                     this.peerConnection.addTrack(track, this.localStream);
                 });
                 
-                this.localVideo.srcObject = this.localStream;
+                // NEW: Switch to video view
+                this.chatScreen.classList.add('in-video-call');
                 this.videoContainer.classList.remove('hidden');
                 this.isInCall = true;
                 
@@ -796,17 +803,24 @@ class SecureChat {
     }
     
     /** Gracefully ends the call, stopping all media tracks and cleaning up connections. */
-    endCall() {
+    endCall(options = { stopLocalStream: true }) {
         try {
             console.log('Ending call...');
             
-            // Stop all tracks first
-            if (this.localStream) {
-                this.localStream.getTracks().forEach(track => {
-                    track.stop();
-                    console.log('Stopped track:', track.kind);
-                });
-                this.localStream = null;
+            // Conditionally stop local tracks. On "skip", we keep the stream alive.
+            if (options.stopLocalStream) {
+                if (this.localStream) {
+                    this.localStream.getTracks().forEach(track => {
+                        track.stop();
+                        console.log('Stopped local track:', track.kind);
+                    });
+                    this.localStream = null;
+                }
+                // Hide the persistent local video element only when the stream is fully stopped
+                if (this.localVideo) {
+                    this.localVideo.srcObject = null;
+                    this.localVideo.classList.add('hidden');
+                }
             }
             
             if (this.remoteStream) {
@@ -840,9 +854,10 @@ class SecureChat {
             this.queuedCandidates = [];
             
             // Reset video elements
-            if (this.localVideo) this.localVideo.srcObject = null;
             if (this.remoteVideo) this.remoteVideo.srcObject = null;
+            // NEW: Switch back to text view
             if (this.videoContainer) this.videoContainer.classList.add('hidden');
+            if (this.chatScreen) this.chatScreen.classList.remove('in-video-call');
             
             // Reset button states
             if (this.toggleVideoBtn) this.toggleVideoBtn.innerHTML = '<i class="fas fa-video"></i>';
