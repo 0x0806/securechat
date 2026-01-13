@@ -321,7 +321,8 @@ body {
 .chat-screen {
     width: 100%;
     max-width: 800px;
-    height: 600px;
+    height: 80vh;
+    max-height: 700px;
     background: var(--glass-bg);
     backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
@@ -329,7 +330,7 @@ body {
     box-shadow: var(--shadow-glass);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: hidden; /* Keep this to enforce border-radius on children */
     animation: fadeInUp 0.8s ease-out;
 }
 
@@ -910,15 +911,20 @@ body {
 @media (max-width: 768px) {
     .header {
         padding: 1rem 1.5rem;
+        position: static; /* Let header scroll on small screens if needed, though unlikely */
     }
 
     .main-content {
-        padding: 1rem;
+        padding: 0; /* Allow chat screen to be full-width */
     }
 
     .chat-screen {
-        height: calc(100vh - 100px);
-        border-radius: var(--radius-lg);
+        height: 100%;
+        width: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        border-radius: 0;
+        border: none;
     }
 
     .welcome-card {
@@ -1063,7 +1069,7 @@ body {
 /* Focus styles for keyboard navigation */
 button:focus,
 input:focus {
-    outline: 2px solid var(--primary);
+    outline: 2px solid var(--accent-color);
     outline-offset: 2px;
 }
 
