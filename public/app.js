@@ -1959,45 +1959,59 @@ class SecureChat {
     /**
      * Safety: NSFW/Age Warning
      */
-    setupNSFWWarning() {
-        const consent = sessionStorage.getItem('nsfw_consent');
+    /**
+     * Safety & Compliance: Unified Welcome Modal
+     */
+    setupWelcomeModal() {
+        const consent = sessionStorage.getItem('welcome_consent');
         if (consent === 'true') return;
 
         const modal = document.createElement('div');
         modal.className = 'nsfw-modal-overlay';
         modal.innerHTML = `
             <div class="nsfw-modal-content">
-                <i class="fas fa-exclamation-triangle nsfw-icon"></i>
-                <h2>NSFW Content Warning</h2>
-                <p>
-                    This application contains unmoderated video & text chat.
-                    <strong>Viewer Discretion is Advised.</strong>
-                </p>
-                <p>
-                    You may encounter nudity or NSFW content.
-                    You must be <strong>18+</strong> to enter.
-                </p>
+                <i class="fas fa-shield-alt nsfw-icon" style="color: var(--accent-color);"></i>
+                <h2>Welcome to SecureChat</h2>
+                
+                <div style="text-align: left; margin: 1.5rem 0; padding: 0 1rem;">
+                    <p style="margin-bottom: 0.5rem; color: var(--danger-color); display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-exclamation-triangle"></i> <strong>Viewer Discretion Advised (18+)</strong>
+                    </p>
+                    <p style="font-size: 0.9rem; color: var(--secondary-text); margin-bottom: 1.5rem; line-height: 1.4;">
+                        This app contains unmoderated user content. You may encounter NSFW material. 
+                    </p>
+
+                    <p style="margin-bottom: 0.5rem; color: var(--success-color); display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-lock"></i> <strong>Privacy & Safety</strong>
+                    </p>
+                    <ul style="font-size: 0.9rem; color: var(--secondary-text); list-style: none; padding: 0; line-height: 1.6;">
+                        <li>• 100% Anonymous & End-to-End Encrypted</li>
+                        <li>• No Logs, No Cookies, No History</li>
+                        <li>• Chat history auto-clears on exit</li>
+                    </ul>
+                </div>
+
                 <div class="nsfw-actions">
-                    <button class="nsfw-btn-agree" id="nsfwAgreeBtn">
-                        <i class="fas fa-check"></i> I am 18+ & Agree
+                    <button class="nsfw-btn-agree" id="welcomeAgreeBtn">
+                        <i class="fas fa-check"></i> I Agree & Enter
                     </button>
-                    <button class="nsfw-btn-exit" id="nsfwExitBtn">
-                        Exit Site
+                    <button class="nsfw-btn-exit" id="welcomeExitBtn">
+                        Exit
                     </button>
                     <div class="age-warning">
-                        By entering, you confirm you are at least 18 years old.
+                        By entering, you confirm you are 18+ and accept our Terms.
                     </div>
                 </div>
             </div>
         `;
 
         document.body.appendChild(modal);
-
-        // Block interaction with background
         document.body.style.overflow = 'hidden';
 
-        document.getElementById('nsfwAgreeBtn').addEventListener('click', () => {
+        document.getElementById('welcomeAgreeBtn').addEventListener('click', () => {
+            sessionStorage.setItem('welcome_consent', 'true');
             sessionStorage.setItem('nsfw_consent', 'true');
+            sessionStorage.setItem('privacy_tips_shown', 'true');
             modal.style.opacity = '0';
             setTimeout(() => {
                 modal.remove();
@@ -2005,7 +2019,7 @@ class SecureChat {
             }, 300);
         });
 
-        document.getElementById('nsfwExitBtn').addEventListener('click', () => {
+        document.getElementById('welcomeExitBtn').addEventListener('click', () => {
             window.location.href = 'https://www.google.com';
         });
     }
@@ -2014,14 +2028,12 @@ class SecureChat {
      * #1-15: Setup all privacy features
      */
     setupPrivacyFeatures() {
-        this.setupNSFWWarning(); // Safety: NSFW Warning
+        this.setupWelcomeModal(); // Combined Warning
         this.setupDisconnectOnTabClose(); // #11
         this.setupClearStorageOnExit(); // #12
         this.showPrivacyBanner(); // #4, #7, #10
         this.showEncryptionIndicator(); // #5
-        if (!this.privacyTipsShown) {
-            this.showPrivacyTipsModal(); // #13
-        }
+        // Tips modal merged into Welcome
         this.setupScreenshotWarning(); // #8
         this.setupIncognitoRecommendation(); // #9
         this.updateConnectionSecurityStatus(); // #15
@@ -2167,57 +2179,11 @@ class SecureChat {
     /**
      * #13: Privacy Tips Modal
      */
+    /**
+     * #13: Privacy Tips Modal (Deprecated - Merged into Welcome)
+     */
     showPrivacyTipsModal() {
-        const modal = document.createElement('div');
-        modal.className = 'modal privacy-modal';
-        modal.innerHTML = `
-            <div class="modal-content privacy-tips-content">
-                <div class="modal-header">
-                    <i class="fas fa-user-secret"></i>
-                    <h3>Privacy & Safety Tips</h3>
-                </div>
-                <div class="privacy-tips-list">
-                    <div class="privacy-tip">
-                        <i class="fas fa-eye-slash"></i>
-                        <span>Use incognito/private browsing mode</span>
-                    </div>
-                    <div class="privacy-tip">
-                        <i class="fas fa-camera-slash"></i>
-                        <span>Be cautious about what you show on camera</span>
-                    </div>
-                    <div class="privacy-tip">
-                        <i class="fas fa-user-shield"></i>
-                        <span>Never share personal information</span>
-                    </div>
-                    <div class="privacy-tip">
-                        <i class="fas fa-ban"></i>
-                        <span>Report inappropriate behavior immediately</span>
-                    </div>
-                    <div class="privacy-tip">
-                        <i class="fas fa-trash-alt"></i>
-                        <span>Chat history auto-deletes when you disconnect</span>
-                    </div>
-                    <div class="privacy-tip">
-                        <i class="fas fa-lock"></i>
-                        <span>All chats are end-to-end encrypted</span>
-                    </div>
-                </div>
-                <div class="modal-actions">
-                    <button class="modal-btn accept-btn" id="privacyTipsOk">
-                        <i class="fas fa-check"></i>
-                        I Understand
-                    </button>
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(modal);
-
-        document.getElementById('privacyTipsOk').addEventListener('click', () => {
-            sessionStorage.setItem('privacy_tips_shown', 'true');
-            this.privacyTipsShown = true;
-            modal.remove();
-        });
+        // Functionality merged into setupWelcomeModal
     }
 
     /**
