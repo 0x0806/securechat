@@ -7,7 +7,7 @@
     
     <!-- Primary Meta Tags -->
     <title>SecureChat - #1 Free Omegle Alternative 2026: Safe Anonymous Random Video Chat with Strangers | No Sign Up, No Registration</title>
-    <meta name="title" content="SecureChat - Free Omegle Alternative | Anonymous Video Chat">
+    <meta name="title" content="SecureChat - Anonymous Video & Text Chat">
     <meta name="description" content="The #1 free Omegle alternative for anonymous video chat and text chat. Connect with strangers worldwide instantly. No registration required. Secure, private, and fast.">
     <meta name="keywords" content="omegle alternative, free video chat, anonymous chat, talk to strangers, random video chat, omegle clone, secure chat, video dating, online chat, cam to cam, chatroulette alternative">
     <meta name="robots" content="index, follow">
@@ -18,13 +18,13 @@
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://securechat.replit.app/">
-    <meta property="og:title" content="SecureChat - Free Omegle Alternative | Anonymous Video Chat">
+    <meta property="og:url" content="https://securechat.replit.app/"> <!-- Replace with your actual URL -->
+    <meta property="og:title" content="SecureChat - Anonymous Video & Text Chat">
     <meta property="og:description" content="The #1 free Omegle alternative for anonymous video chat and text chat. Connect with strangers worldwide instantly. No registration required.">
     <meta property="og:image" content="https://via.placeholder.com/1200x630/0f172a/ffffff?text=SecureChat+Omegle+Alternative">
 
     <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:card" content="summary_large_image"> 
     <meta property="twitter:url" content="https://securechat.replit.app/">
     <meta property="twitter:title" content="SecureChat - Free Omegle Alternative | Anonymous Video Chat">
     <meta property="twitter:description" content="The #1 free Omegle alternative for anonymous video chat and text chat. Connect with strangers worldwide instantly. No registration required.">
@@ -127,7 +127,7 @@
                     <h2>Finding a chat partner...</h2>
                     <p>Please wait while we connect you with someone</p>
                     <button class="cancel-btn" id="cancelWaitBtn">
-                        <i class="fas fa-times"></i>
+                        <i class="fas fa-times" aria-hidden="true"></i>
                         Cancel
                     </button>
                 </div>
@@ -146,11 +146,11 @@
                         </div>
                     </div>
                     <div class="chat-controls">
-                        <button class="control-btn call-btn" id="callBtn" title="Start Call">
-                            <i class="fas fa-video"></i>
+                        <button class="control-btn call-btn" id="callBtn" title="Start Video Call" aria-label="Start Video Call">
+                            <i class="fas fa-video" aria-hidden="true"></i>
                         </button>
-                        <button class="control-btn skip-btn" id="skipBtn" title="Skip Partner">
-                            <i class="fas fa-forward"></i>
+                        <button class="control-btn skip-btn" id="skipBtn" title="Skip Partner (Esc)" aria-label="Skip Partner">
+                            <i class="fas fa-forward" aria-hidden="true"></i>
                         </button>
                     </div>
                 </div>
@@ -166,17 +166,17 @@
                     <video id="localVideo" muted autoplay playsinline></video>
                     <video id="remoteVideo" autoplay playsinline></video>
                     <div class="video-controls">
-                        <button class="video-control-btn" id="toggleVideoBtn">
-                            <i class="fas fa-video"></i>
+                        <button class="video-control-btn" id="toggleVideoBtn" title="Toggle Video" aria-label="Toggle Video">
+                            <i class="fas fa-video" aria-hidden="true"></i>
                         </button>
-                        <button class="video-control-btn" id="toggleAudioBtn">
-                            <i class="fas fa-microphone"></i>
+                        <button class="video-control-btn" id="toggleAudioBtn" title="Toggle Audio" aria-label="Toggle Audio">
+                            <i class="fas fa-microphone" aria-hidden="true"></i>
                         </button>
-                        <button class="video-control-btn" id="fullscreenBtn">
-                            <i class="fas fa-expand"></i>
+                        <button class="video-control-btn" id="fullscreenBtn" title="Toggle Fullscreen" aria-label="Toggle Fullscreen">
+                            <i class="fas fa-expand" aria-hidden="true"></i>
                         </button>
-                        <button class="video-control-btn end-call-btn" id="endCallBtn">
-                            <i class="fas fa-phone-slash"></i>
+                        <button class="video-control-btn end-call-btn" id="endCallBtn" title="End Call" aria-label="End Call">
+                            <i class="fas fa-phone-slash" aria-hidden="true"></i>
                         </button>
                     </div>
                 </div>
@@ -192,13 +192,13 @@
 
                 <div class="message-input-container">
                     <div class="message-input">
-                        <button class="emoji-btn" id="emojiBtn">
-                            <i class="far fa-smile"></i>
+                        <button class="emoji-btn" id="emojiBtn" title="Open Emojis" aria-label="Open Emojis">
+                            <i class="far fa-smile" aria-hidden="true"></i>
                         </button>
                         <div class="emoji-picker hidden" id="emojiPicker"></div>
                         <input type="text" id="messageInput" placeholder="Type your message..." maxlength="500">
-                        <button class="send-btn" id="sendBtn">
-                            <i class="fas fa-paper-plane"></i>
+                        <button class="send-btn" id="sendBtn" title="Send Message" aria-label="Send Message">
+                            <i class="fas fa-paper-plane" aria-hidden="true"></i>
                         </button>
                     </div>
                 </div>
@@ -218,11 +218,11 @@
                 <p>Your chat partner wants to start a video call</p>
                 <div class="modal-actions">
                     <button class="modal-btn decline-btn" id="declineCallBtn">
-                        <i class="fas fa-times"></i>
+                        <i class="fas fa-times" aria-hidden="true"></i>
                         Decline
                     </button>
                     <button class="modal-btn accept-btn" id="acceptCallBtn">
-                        <i class="fas fa-check"></i>
+                        <i class="fas fa-check" aria-hidden="true"></i>
                         Accept
                     </button>
                 </div>
