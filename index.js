@@ -22,8 +22,8 @@ app.use((req, res, next) => {
     "default-src 'self'; " + // By default, only allow content from our own origin.
     "script-src 'self'; " + // Allow scripts from our origin.
     "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; " + // Allow stylesheets from our origin and inline styles.
-    "font-src 'self' https://cdnjs.cloudflare.com; " + // Allow fonts from our origin and Font Awesome's CDN.
-    "connect-src 'self' wss:; " + // Allow WebSocket, fetch to our origin and Font Awesome.
+    "font-src 'self' https://cdnjs.cloudflare.com; " + // Allow fonts from our origin and Font Awesome's CDN. For production, self-hosting fonts is more secure.
+    "connect-src 'self'; " + // Allow WebSocket and fetch to our own origin. 'self' includes wss:// if the page is on https://.
     "img-src 'self' data:; " + // Allow images from our origin and data: URIs.
     "media-src 'self' blob:;" // Allow media (video/audio) from our origin and blob URIs (for WebRTC).
   );
@@ -92,41 +92,41 @@ io.on('connection', (socket) => {
     // would be replaced with a distributed store like Redis to allow for
     // multiple server instances.
     userSockets.set(socket.id, { ...userData, socketId: socket.id });
-    
-    // Improved matching logic: Find a valid partner, prioritizing same chat mode
+
+    // Optimized matching logic: Single pass to find the best possible partner.
     let partnerId = null;
     let partnerData = null;
+    let fallbackPartnerId = null;
+    let fallbackPartnerData = null;
 
     // Helper to validate socket
     const isSocketValid = (sid) => {
         const s = io.sockets.sockets.get(sid);
         return s && s.connected;
     };
-
-    // 1. Try to find match with same mode
+    
     for (const [pid, pdata] of waitingUsers) {
-        if (isSocketValid(pid)) {
-            if (pdata.chatMode === userData.chatMode) {
-                partnerId = pid;
-                partnerData = pdata;
-                break;
-            }
-        } else {
-            waitingUsers.delete(pid); // Clean up stale
+        if (!isSocketValid(pid)) {
+            waitingUsers.delete(pid); // Clean up stale entry
+            continue;
+        }
+        // Prioritize finding a partner with the same chat mode.
+        if (pdata.chatMode === userData.chatMode) {
+            partnerId = pid;
+            partnerData = pdata;
+            break; // Found the best match, no need to search further.
+        }
+        // If no same-mode partner found yet, keep the first available user as a fallback.
+        if (!fallbackPartnerId) {
+            fallbackPartnerId = pid;
+            fallbackPartnerData = pdata;
         }
     }
 
-    // 2. Fallback: any partner
-    if (!partnerId) {
-        for (const [pid, pdata] of waitingUsers) {
-            if (isSocketValid(pid)) {
-                partnerId = pid;
-                partnerData = pdata;
-                break;
-            } else {
-                waitingUsers.delete(pid);
-            }
-        }
+    // If no ideal (same-mode) partner was found, use the fallback.
+    if (!partnerId && fallbackPartnerId) {
+        partnerId = fallbackPartnerId;
+        partnerData = fallbackPartnerData;
     }
 
     if (partnerId) {
