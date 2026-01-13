@@ -2,6 +2,9 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    /* Suggestion 13: Firefox scrollbar support */
+    scrollbar-width: thin;
+    scrollbar-color: var(--glass-border) transparent;
 }
 
 :root {
@@ -81,6 +84,18 @@ body {
     color: var(--success-color);
     animation: pulse 2s infinite;
 }
+
+/* Suggestion 15: Sound Toggle Button */
+.sound-toggle-btn {
+    background: transparent;
+    border: none;
+    color: var(--secondary-text);
+    cursor: pointer;
+    padding: 5px;
+    margin-right: 10px;
+    transition: color 0.3s ease;
+}
+.sound-toggle-btn:hover { color: var(--accent-color); }
 
 /* Main Content */
 .main-content {
@@ -410,6 +425,28 @@ body {
     background: var(--danger-color);
 }
 
+/* Suggestion 15: Clear Chat Button */
+.clear-chat-btn:hover {
+    background: var(--warning-color);
+}
+
+.export-btn:hover {
+    background: var(--success-color);
+}
+
+/* Suggestion 4: Report Button */
+.report-btn:hover {
+    background: var(--danger-color);
+    color: white;
+}
+
+/* Suggestion 8: Auto-Skip Button */
+.auto-skip-btn.active {
+    background: var(--accent-color);
+    color: white;
+    animation: pulse 2s infinite;
+}
+
 /* Chat Messages */
 .chat-messages {
     flex: 1;
@@ -441,6 +478,8 @@ body {
     border-radius: 18px;
     word-wrap: break-word;
     animation: messageSlideIn 0.3s ease-out;
+    /* Suggestion 13: Preserve whitespace */
+    white-space: pre-wrap;
 }
 
 .message.own {
@@ -457,6 +496,48 @@ body {
     border-bottom-left-radius: 6px;
     border: 1px solid var(--glass-border);
 }
+
+/* Suggestion 31: Link styles */
+.message-text a {
+    color: var(--accent-color);
+    text-decoration: underline;
+}
+
+/* Suggestion 32: Code styles */
+.message-text code {
+    background: rgba(0,0,0,0.3);
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+/* Suggestion 7: Scroll to Bottom Button */
+.scroll-bottom-btn {
+    position: absolute;
+    bottom: 80px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+.scroll-bottom-btn:hover { transform: translateY(-2px); }
+
+/* Suggestion 14: Hide copy button until hover */
+.copy-message-btn {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+.message:hover .copy-message-btn { opacity: 1; }
 
 .system-message {
     align-self: center;
@@ -509,6 +590,19 @@ body {
     justify-content: center;
 }
 
+.call-timer {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.6);
+    padding: 5px 15px;
+    border-radius: 20px;
+    color: white;
+    font-family: monospace;
+    z-index: 80;
+}
+
 #localVideo {
     width: 100%;
     height: 100%;
@@ -528,6 +622,13 @@ body {
     border: 2px solid rgba(255,255,255,0.1);
     z-index: 60;
     background: #1e293b;
+}
+
+.audio-visualizer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
 }
 
 #remoteVideo {
