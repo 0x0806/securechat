@@ -2237,6 +2237,14 @@ input:focus-visible {
     }
 }
 
+/* ========== UTILITIES ========== */
+.hidden {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+}
+
 /* ========== NOTIFICATION OVERLAY FIX ========== */
 .notification-container {
     position: fixed !important;
