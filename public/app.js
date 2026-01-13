@@ -1962,23 +1962,23 @@ class SecureChat {
                 <i class="fas fa-shield-alt nsfw-icon" style="color: var(--accent-color);"></i>
                 <h2>Welcome to SecureChat</h2>
                 
-                <div style="text-align: left; margin: 1.5rem 0; padding: 0 1rem;">
-                    <div style="background: rgba(255, 71, 87, 0.1); border-left: 3px solid var(--danger-color); padding: 10px; margin-bottom: 15px; border-radius: 4px;">
-                        <p style="margin: 0 0 5px 0; font-size: 0.9rem; color: var(--danger-color); font-weight: bold;">
+                <div class="welcome-modal-body">
+                    <div class="warning-banner">
+                        <p class="warning-title">
                             <i class="fas fa-exclamation-triangle"></i> NSFW / MATURE CONTENT (18+)
                         </p>
-                        <p style="margin: 0; font-size: 0.8rem; color: var(--secondary-text);">
+                        <p class="warning-text">
                             This service is unmoderated. You may encounter explicit content.
                         </p>
                     </div>
 
-                    <p style="font-size: 0.8rem; color: var(--secondary-text); line-height: 1.5; margin-bottom: 10px;">
+                    <p class="disclaimer-text">
                         <strong>Disclaimer:</strong> This is a P2P service. The developer accepts <strong>NO LIABILITY</strong> for user conduct or content. You are solely responsible for your interactions.
                     </p>
 
-                    <p style="margin-bottom: 0.5rem; color: var(--success-color); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                    <div class="privacy-guarantee">
                         <i class="fas fa-lock"></i> 100% Anonymous & Encrypted
-                    </p>
+                    </div>
                 </div>
 
                 <div class="nsfw-actions">
