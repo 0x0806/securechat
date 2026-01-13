@@ -2106,3 +2106,95 @@ input:focus-visible {
         right: 20px;
     }
 }
+
+/* ========== MOBILE ENTERPRISE OPTIMIZATION ========== */
+@media (max-width: 480px) {
+
+    /* 1. Video Interface - Dynamic Viewport Fix */
+    .video-interface {
+        height: 100dvh;
+        /* Modern browsers */
+        height: -webkit-fill-available;
+        /* iOS Safari fallback */
+    }
+
+    .video-wrapper {
+        height: 100%;
+        width: 100%;
+    }
+
+    /* 2. Chat Box Optimization */
+    .chat-screen {
+        height: 100dvh;
+        max-height: 100dvh;
+        width: 100vw;
+        border-radius: 0;
+        border: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 100;
+    }
+
+    .message-input-container {
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        /* Better contrast */
+        position: sticky;
+        bottom: 0;
+    }
+
+    #messageInput {
+        font-size: 16px;
+        /* Prevents iOS auto-zoom */
+        min-height: 44px;
+        /* Touch target */
+    }
+
+    .send-btn,
+    .emoji-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 1.2rem;
+    }
+
+    /* 3. Video Controls Compact Mode */
+    .video-controls {
+        width: 95%;
+        padding: 8px 15px;
+        gap: 8px;
+        bottom: 20px;
+        justify-content: space-between;
+        background: rgba(0, 0, 0, 0.85);
+        /* Darker for legibility */
+        backdrop-filter: blur(15px);
+    }
+
+    .video-control-btn {
+        width: 42px;
+        height: 42px;
+        min-width: 42px;
+        font-size: 1rem;
+    }
+
+    /* Move local video out of the way */
+    .local-video-wrapper {
+        width: 100px;
+        height: 150px;
+        top: 20px;
+        /* Move to TOP right on mobile */
+        right: 20px;
+        bottom: auto;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    /* Fix icons alignment */
+    .header .logo {
+        font-size: 1rem;
+    }
+
+    .status-indicator span {
+        display: none;
+        /* Hide text, keep dot */
+    }
+}
