@@ -2003,15 +2003,23 @@ class SecureChat {
                     </div>
                 </div>
 
-                <div class="nsfw-actions">
-                    <button class="nsfw-btn-agree" id="welcomeAgreeBtn">
-                        <i class="fas fa-check"></i> I Agree & Enter
-                    </button>
-                    <button class="nsfw-btn-exit" id="welcomeExitBtn">
-                        Exit
-                    </button>
-                    <div class="age-warning">
-                        By entering, you confirm you are 18+ and accept our Terms.
+                <div class="glass-container actions-container">
+                    <div class="container-header">
+                        <i class="fas fa-hand-pointer"></i>
+                        <span>Action Required</span>
+                    </div>
+                    <ul class="action-points">
+                        <li>Confirm you are 18 years or older</li>
+                        <li>Accept terms and legal disclaimer</li>
+                        <li>Acknowledge privacy policy</li>
+                    </ul>
+                    <div class="action-buttons">
+                        <button class="nsfw-btn-agree" id="welcomeAgreeBtn">
+                            <i class="fas fa-check"></i> I Agree & Enter
+                        </button>
+                        <button class="nsfw-btn-exit" id="welcomeExitBtn">
+                            Exit
+                        </button>
                     </div>
                 </div>
             </div>
