@@ -1963,56 +1963,19 @@ class SecureChat {
                 <h2>Welcome to SecureChat</h2>
                 
                 <div class="welcome-modal-body">
-                    <!-- NSFW Warning Container -->
-                    <div class="glass-container warning-container">
+                    <!-- Unified Agreement Container -->
+                    <div class="glass-container unified-agreement-container">
                         <div class="container-header">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <span>Content Warning (18+)</span>
+                            <i class="fas fa-file-contract"></i>
+                            <span>Terms of Service</span>
                         </div>
-                        <ul class="warning-points">
-                            <li>Unmoderated user-generated content</li>
-                            <li>May contain explicit/NSFW material</li>
-                            <li>Must be 18+ to use this service</li>
+                        <ul class="unified-points">
+                            <li><strong>Age & Content:</strong> I am 18+ and acknowledge that I may encounter unmoderated or NSFW content.</li>
+                            <li><strong>No Liability:</strong> I understand this is a P2P service and the developer accepts zero liability for user conduct.</li>
+                            <li><strong>Privacy:</strong> I accept that chats are anonymous & encrypted, and I am solely responsible for my interactions.</li>
                         </ul>
                     </div>
 
-                    <!-- Liability Disclaimer Container -->
-                    <div class="glass-container disclaimer-container">
-                        <div class="container-header">
-                            <i class="fas fa-shield-alt"></i>
-                            <span>Legal Disclaimer</span>
-                        </div>
-                        <ul class="disclaimer-points">
-                            <li>Peer-to-peer communication service</li>
-                            <li>Developer accepts <strong>NO LIABILITY</strong> for user conduct</li>
-                            <li>You are solely responsible for your interactions</li>
-                        </ul>
-                    </div>
-
-                    <!-- Privacy Guarantee Container -->
-                    <div class="glass-container privacy-container">
-                        <div class="container-header">
-                            <i class="fas fa-lock"></i>
-                            <span>Privacy Guarantee</span>
-                        </div>
-                        <ul class="privacy-points">
-                            <li>100% Anonymous & End-to-End Encrypted</li>
-                            <li>Zero data retention policy</li>
-                            <li>No logs, cookies, or tracking</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="glass-container actions-container">
-                    <div class="container-header">
-                        <i class="fas fa-hand-pointer"></i>
-                        <span>Action Required</span>
-                    </div>
-                    <ul class="action-points">
-                        <li>Confirm you are 18 years or older</li>
-                        <li>Accept terms and legal disclaimer</li>
-                        <li>Acknowledge privacy policy</li>
-                    </ul>
                     <div class="action-buttons">
                         <button class="nsfw-btn-agree" id="welcomeAgreeBtn">
                             <i class="fas fa-check"></i> I Agree & Enter
