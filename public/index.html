@@ -5,6 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     
+    <!-- Suggestion 4: Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+
     <!-- Primary Meta Tags -->
     <title>SecureChat - #1 Free Omegle Alternative 2026: Safe Anonymous Random Video Chat with Strangers | No Sign Up, No Registration</title>
     <meta name="title" content="SecureChat - Anonymous Video & Text Chat">
@@ -146,8 +149,21 @@
                         </div>
                     </div>
                     <div class="chat-controls">
-                        <button class="control-btn call-btn" id="callBtn" title="Switch to Video Call" aria-label="Switch to Video Call">
-                            <i class="fas fa-video" aria-hidden="true"></i>
+                        <!-- Suggestion 40: Export Chat -->
+                        <button class="control-btn export-btn" id="exportChatBtn" title="Export Chat" aria-label="Export Chat">
+                            <i class="fas fa-download" aria-hidden="true"></i>
+                        </button>
+                        <!-- Suggestion 8: Auto-Skip Toggle -->
+                        <button class="control-btn auto-skip-btn" id="autoSkipBtn" title="Toggle Auto-Skip" aria-label="Toggle Auto-Skip">
+                            <i class="fas fa-sync-alt" aria-hidden="true"></i>
+                        </button>
+                        <!-- Suggestion 4: Report Button -->
+                        <button class="control-btn report-btn" id="reportBtn" title="Report Partner" aria-label="Report Partner">
+                            <i class="fas fa-flag" aria-hidden="true"></i>
+                        </button>
+                        <!-- Suggestion 5: Clear Chat Button -->
+                        <button class="control-btn clear-chat-btn" id="clearChatBtn" title="Clear Chat History" aria-label="Clear Chat History">
+                            <i class="fas fa-trash-alt" aria-hidden="true"></i>
                         </button>
                         <button class="control-btn skip-btn" id="skipBtn" title="Skip Partner (Esc)" aria-label="Skip Partner">
                             <i class="fas fa-step-forward" aria-hidden="true"></i>
@@ -163,6 +179,10 @@
                             <span>You're now connected with a stranger. Say hello!</span>
                         </div>
                     </div>
+                    <!-- Suggestion 7: Scroll to Bottom Button -->
+                    <button class="scroll-bottom-btn hidden" id="scrollBottomBtn" title="Scroll to Bottom">
+                        <i class="fas fa-arrow-down"></i>
+                    </button>
                     
                     <div class="typing-indicator hidden" id="typingIndicator">
                         <div class="typing-dots">
@@ -186,33 +206,48 @@
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Video Interface Container (Standalone) -->
-                <div class="video-interface hidden" id="videoContainer">
-                    <div class="video-wrapper">
-                        <video id="remoteVideo" autoplay playsinline></video>
-                        <div class="local-video-wrapper">
-                            <video id="localVideo" muted autoplay playsinline></video>
-                        </div>
+            <!-- Video Interface Container (Standalone) -->
+            <div class="video-interface hidden" id="videoContainer">
+                <div class="video-wrapper">
+                    <div id="callTimer" class="call-timer hidden">00:00</div>
+                    <video id="remoteVideo" autoplay playsinline></video>
+                    <div class="local-video-wrapper">
+                        <video id="localVideo" muted autoplay playsinline></video>
                     </div>
-                    
-                    <div class="video-controls">
-                        <button class="video-control-btn" id="toggleVideoBtn" title="Toggle Camera">
-                            <i class="fas fa-video"></i>
-                        </button>
-                        <button class="video-control-btn" id="toggleAudioBtn" title="Toggle Mic">
-                            <i class="fas fa-microphone"></i>
-                        </button>
-                        <button class="video-control-btn end-call-btn" id="endCallBtn" title="Switch to Text / End Call">
-                            <i class="fas fa-comment-alt"></i>
-                        </button>
-                        <button class="video-control-btn skip-video-btn" id="skipVideoBtn" title="Skip Partner">
-                            <i class="fas fa-step-forward"></i>
-                        </button>
-                        <button class="video-control-btn" id="fullscreenBtn" title="Fullscreen">
-                            <i class="fas fa-expand"></i>
-                        </button>
-                    </div>
+                </div>
+                
+                <div class="video-controls">
+                    <button class="video-control-btn" id="toggleVideoBtn" title="Toggle Camera">
+                        <i class="fas fa-video"></i>
+                    </button>
+                    <!-- Suggestion 5: Switch Camera -->
+                    <button class="video-control-btn" id="switchCameraBtn" title="Switch Camera">
+                        <i class="fas fa-camera-rotate"></i>
+                    </button>
+                    <button class="video-control-btn" id="toggleAudioBtn" title="Toggle Mic">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button class="video-control-btn" id="screenShareBtn" title="Share Screen">
+                        <i class="fas fa-desktop"></i>
+                    </button>
+                    <button class="video-control-btn" id="pipBtn" title="Picture in Picture">
+                        <i class="fas fa-images"></i>
+                    </button>
+                    <!-- Suggestion 6: Screenshot -->
+                    <button class="video-control-btn" id="screenshotBtn" title="Take Screenshot">
+                        <i class="fas fa-camera"></i>
+                    </button>
+                    <button class="video-control-btn end-call-btn" id="endCallBtn" title="End Call & Exit">
+                        <i class="fas fa-comment-alt"></i>
+                    </button>
+                    <button class="video-control-btn skip-video-btn" id="skipVideoBtn" title="Skip Partner">
+                        <i class="fas fa-step-forward"></i>
+                    </button>
+                    <button class="video-control-btn" id="fullscreenBtn" title="Fullscreen">
+                        <i class="fas fa-expand"></i>
+                    </button>
                 </div>
             </div>
         </main>
