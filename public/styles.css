@@ -11,7 +11,7 @@
     --glass-bg: rgba(255, 255, 255, 0.05);
     --glass-border: rgba(255, 255, 255, 0.1);
     --primary-text: #ffffff;
-    --secondary-text: #b8b8b8;
+    --secondary-text: #94a3b8;
     --accent-color: #00d4ff;
     --success-color: #00ff88;
     --warning-color: #ffaa00;
@@ -24,15 +24,11 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: var(--primary-bg);
-    background-image: 
-        radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 40% 80%, rgba(120, 199, 255, 0.3) 0%, transparent 50%);
-    min-height: 100vh;
+    background: #020617; /* Solid dark enterprise background */
+    height: 100vh;
     color: var(--primary-text);
     overflow-x: hidden;
-    animation: bgPulse 10s ease-in-out infinite alternate;
+    overflow-y: hidden;
 }
 
 /* Custom Scrollbar */
@@ -42,7 +38,7 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: var(--accent-color); }
 
 .app-container {
-    min-height: 100vh;
+    height: 100vh;
     display: flex;
     flex-direction: column;
 }
@@ -55,7 +51,7 @@ body {
     padding: 1rem 2rem;
     background: var(--glass-bg);
     backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--glass-border);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -92,8 +88,9 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2rem;
+    padding: 1rem;
     position: relative;
+    overflow: hidden;
 }
 
 /* Welcome Screen */
@@ -320,18 +317,26 @@ body {
 /* Chat Screen */
 .chat-screen {
     width: 100%;
-    max-width: 800px;
-    height: 80vh;
-    max-height: 700px;
-    background: var(--glass-bg);
-    backdrop-filter: blur(20px);
+    max-width: 1000px;
+    height: 100%;
+    max-height: 85vh;
+    background: rgba(30, 41, 59, 0.5);
+    backdrop-filter: blur(40px);
     border: 1px solid var(--glass-border);
-    border-radius: 20px;
+    border-radius: 24px;
     box-shadow: var(--shadow-glass);
     display: flex;
     flex-direction: column;
     overflow: hidden; /* Keep this to enforce border-radius on children */
     animation: fadeInUp 0.8s ease-out;
+    position: relative; /* For stacking context of video container */
+}
+
+.text-interface {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
 }
 
 .chat-header {
@@ -479,77 +484,92 @@ body {
     vertical-align: middle;
 }
 
-/* Video Container */
-.video-container {
-    position: absolute;
+/* Video Interface (Standalone) */
+.video-interface {
+    position: fixed; /* Fixed to cover entire viewport including header */
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--primary-bg);
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for mobile browsers */
+    background: #000;
     display: flex;
-    border-radius: 20px;
+    flex-direction: column;
+    z-index: 2000; /* High z-index to sit on top of everything */
+}
+
+.video-wrapper {
+    flex: 1;
+    position: relative;
+    width: 100%;
+    height: 100%;
     overflow: hidden;
-    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #localVideo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1); /* Mirror effect */
+}
+
+.local-video-wrapper {
     position: absolute;
-    top: 20px;
+    bottom: 100px;
     right: 20px;
-    width: 200px;
-    height: 150px;
+    width: 160px;
+    height: 210px;
     border-radius: 12px;
-    border: 2px solid var(--glass-border);
-    z-index: 1010;
-    background: var(--accent-bg);
-    cursor: move; /* Indicates draggable */
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    border: 2px solid rgba(255,255,255,0.1);
+    z-index: 60;
+    background: #1e293b;
 }
 
 #remoteVideo {
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    background: var(--accent-bg);
+    object-fit: cover;
+    background: #0f172a;
 }
 
 .video-controls {
     position: absolute;
-    bottom: 20px;
+    bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    gap: 1rem;
-    z-index: 1020;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.video-container:hover .video-controls {
-    opacity: 1;
+    gap: 1.5rem;
+    z-index: 70;
+    padding: 1rem 2rem;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(10px);
+    border-radius: 50px;
 }
 
 .video-control-btn {
-    width: 50px;
-    height: 50px;
+    width: 56px;
+    height: 56px;
     border: none;
     border-radius: 50%;
-    background: var(--glass-bg);
-    backdrop-filter: blur(20px);
+    background: rgba(255,255,255,0.1);
     color: white;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
-    border: 2px solid var(--glass-border);
-    box-shadow: var(--shadow-primary);
+    font-size: 1.2rem;
 }
 
 .video-control-btn:hover {
     transform: scale(1.1);
-    background: var(--accent-color);
+    background: white;
+    color: black;
 }
 
 .end-call-btn {
@@ -557,7 +577,17 @@ body {
 }
 
 .end-call-btn:hover {
-    background: #ff3742;
+    background: #ef4444;
+    color: white;
+}
+
+.skip-video-btn {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.skip-video-btn:hover {
+    background: var(--warning-color);
+    color: white;
 }
 
 /* Typing Indicator */
@@ -712,7 +742,7 @@ body {
     padding: 1rem 1.5rem;
     color: var(--primary-text);
     box-shadow: var(--shadow-primary);
-    animation: slideInRight 0.5s ease-out;
+    animation: slideInRight 0.3s ease-out;
     max-width: 300px;
     display: flex;
     align-items: center;
@@ -910,29 +940,27 @@ body {
 /* Responsive Design */
 @media (max-width: 768px) {
     .header {
-        padding: 1rem 1.5rem;
-        position: static; /* Let header scroll on small screens if needed, though unlikely */
+        padding: 0.8rem 1rem;
     }
 
     .main-content {
         padding: 0; /* Allow chat screen to be full-width */
+        height: 100%;
     }
 
     .chat-screen {
         height: 100%;
         width: 100%;
-        max-width: 100%;
         max-height: 100%;
         border-radius: 0;
         border: none;
     }
 
-    .welcome-card {
-        padding: 2rem 1.5rem;
-    }
-
-    .welcome-card h1 {
-        font-size: 2rem;
+    .local-video-wrapper {
+        width: 100px;
+        height: 140px;
+        bottom: 100px;
+        right: 15px;
     }
 
     .features {
@@ -962,21 +990,11 @@ body {
         max-width: 85%;
     }
 
-    #localVideo {
-        width: 120px;
-        height: 90px;
-        top: 15px;
-        right: 15px;
-    }
-
     .video-controls {
-        bottom: 15px;
-        gap: 0.8rem;
-    }
-
-    .video-control-btn {
-        width: 45px;
-        height: 45px;
+        bottom: 20px;
+        width: 90%;
+        justify-content: space-around;
+        gap: 0;
     }
 
     .notification-container {
