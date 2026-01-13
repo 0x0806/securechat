@@ -2529,170 +2529,70 @@ input:focus-visible {
     letter-spacing: 0.5px;
 }
 
-.warning-container {
-    border-left: 3px solid #ef4444;
-    background: rgba(239, 68, 68, 0.05);
+/* Unified Agreement Container */
+.unified-agreement-container {
+    background: rgba(30, 41, 59, 0.7);
+    /* Custom slate background for readability */
+    border-left: 4px solid #6366f1;
+    /* Indigo accent */
+    margin-bottom: 24px;
 }
 
-.warning-container .container-header {
-    color: #fca5a5;
+.unified-agreement-container .container-header {
+    color: #818cf8;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 12px;
+    margin-bottom: 16px;
 }
 
-.disclaimer-container {
-    border-left: 3px solid #f59e0b;
-    background: rgba(245, 158, 11, 0.05);
-}
-
-.disclaimer-container .container-header {
-    color: #fbbf24;
-}
-
-.privacy-container {
-    border-left: 3px solid #10b981;
-    background: rgba(16, 185, 129, 0.05);
-}
-
-.privacy-container .container-header {
-    color: #6ee7b7;
-}
-
-/* Bullet Point Lists */
-.warning-points,
-.disclaimer-points,
-.privacy-points {
+.unified-points {
     list-style: none;
     padding: 0;
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 16px;
 }
 
-.warning-points li,
-.disclaimer-points li,
-.privacy-points li {
-    padding-left: 24px;
+.unified-points li {
+    padding-left: 28px;
     position: relative;
-    font-size: 0.875rem;
+    font-size: 0.95rem;
+    /* Slightly larger for readability */
     line-height: 1.6;
-    color: #cbd5e1;
+    color: #e2e8f0;
+    /* Lighter text */
+    text-align: left;
 }
 
-.warning-points li::before,
-.disclaimer-points li::before,
-.privacy-points li::before {
-    content: "•";
+.unified-points li::before {
+    content: "✓";
     position: absolute;
-    left: 8px;
-    font-size: 1.2rem;
+    left: 0;
+    top: 2px;
+    font-size: 1.1rem;
     font-weight: bold;
-}
-
-.warning-points li::before {
-    color: #f87171;
-}
-
-.disclaimer-points li::before {
-    color: #fbbf24;
-}
-
-.privacy-points li::before {
-    color: #34d399;
-}
-
-/* Enhanced Button Styles */
-.nsfw-btn-agree {
-    position: relative;
-    overflow: hidden;
-}
-
-.nsfw-btn-agree::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s;
-}
-
-.nsfw-btn-agree:hover::before {
-    left: 100%;
-}
-
-.nsfw-btn-agree:active {
-    transform: translateY(0) !important;
-}
-
-.age-warning {
-    margin-top: 12px;
-    font-size: 0.75rem;
-    color: #64748b;
-    text-align: center;
-}
-
-/* Mobile Responsiveness for Glass Containers */
-@media (max-width: 480px) {
-    .nsfw-modal-content {
-        padding: 28px 24px !important;
-        max-width: 95% !important;
-    }
-
-    .glass-container {
-        padding: 16px;
-    }
-
-    .container-header {
-        font-size: 0.85rem;
-    }
-
-    .warning-points li,
-    .disclaimer-points li,
-    .privacy-points li {
-        font-size: 0.8rem;
-    }
-}
-
-/* Actions Container Specific Styles */
-.actions-container {
-    border-left: 3px solid #3b82f6;
-    background: rgba(59, 130, 246, 0.05);
-}
-
-.actions-container .container-header {
-    color: #93c5fd;
-}
-
-.action-points {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 20px 0;
+    color: #6366f1;
+    /* Indigo checkmark */
+    background: rgba(99, 102, 241, 0.15);
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
     display: flex;
-    flex-direction: column;
-    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
 }
 
-.action-points li {
-    padding-left: 24px;
-    position: relative;
-    font-size: 0.875rem;
-    line-height: 1.6;
-    color: #cbd5e1;
-}
-
-.action-points li::before {
-    content: "•";
-    position: absolute;
-    left: 8px;
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: #60a5fa;
+.unified-points li strong {
+    color: #ffffff;
+    font-weight: 600;
+    margin-right: 6px;
 }
 
 .action-buttons {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin-top: 16px;
+    margin-top: 8px;
 }
