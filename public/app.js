@@ -982,7 +982,7 @@ class SecureChat {
             if (this.remoteVideo) this.remoteVideo.srcObject = null;
             
             if (!options.keepUI) {
-                this.switchViewMode('text');
+                // Removed automatic switch to text mode to keep sections standalone
             }
             
             // Reset button states
@@ -992,7 +992,7 @@ class SecureChat {
             this.isInCall = false;
             
             // Auto-focus back to text chat
-            if (this.currentScreen === 'chat' && this.messageInput) {
+            if (this.chatMode === 'text' && this.currentScreen === 'chat' && this.messageInput) {
                 setTimeout(() => {
                     this.messageInput.focus();
                 }, 200);
@@ -1384,13 +1384,18 @@ class SecureChat {
         this.updatePartnerStatus('Disconnected');
         this.showTypingIndicator(false);
 
-        // UX: Disable input and show a message in the chat window for a smoother transition
-        this.messageInput.disabled = true;
-        this.sendBtn.disabled = true;
-        this.displaySystemMessage('Finding a new partner for you in 3 seconds...');
+        if (this.chatMode === 'text') {
+            // UX: Disable input and show a message in the chat window for a smoother transition
+            this.messageInput.disabled = true;
+            this.sendBtn.disabled = true;
+            this.displaySystemMessage('Finding a new partner for you in 3 seconds...');
+        } else {
+            // In video mode, show notification immediately
+            this.showNotification('Partner disconnected. Searching...', 'info');
+        }
         
-        if (this.autoSkipEnabled) {
-            this.displaySystemMessage('Auto-skipping enabled. Searching...');
+        if (this.autoSkipEnabled && this.chatMode === 'text') {
+             this.displaySystemMessage('Auto-skipping enabled. Searching...');
         }
 
         this.reconnectTimer = setTimeout(() => {
