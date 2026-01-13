@@ -95,10 +95,9 @@ class SecureChat {
         this.sendBtn = document.getElementById('sendBtn');
         this.sendBtn.setAttribute('aria-label', 'Send message');
         this.skipBtn = document.getElementById('skipBtn');
-        this.skipBtn.setAttribute('aria-label', 'Skip to a new partner');
-        this.clearChatBtn = document.getElementById('clearChatBtn'); // Suggestion 5
-        this.reportBtn = document.getElementById('reportBtn'); // Suggestion 4
-        this.autoSkipBtn = document.getElementById('autoSkipBtn'); // Suggestion 8
+        this.skipBtn.setAttribute('aria-label', 'Next Partner');
+        this.exitChatBtn = document.getElementById('exitChatBtn');
+        if (this.exitChatBtn) this.exitChatBtn.setAttribute('aria-label', 'Exit to Home');
 
         // Video elements
         this.localVideo = document.getElementById('localVideo');
@@ -133,7 +132,8 @@ class SecureChat {
         this.emojiPicker = document.getElementById('emojiPicker');
 
         // New Elements
-        this.exportChatBtn = document.getElementById('exportChatBtn');
+        // New Elements
+        this.callTimerDisplay = document.getElementById('callTimer');
         this.callTimerDisplay = document.getElementById('callTimer');
 
         // Modal elements
@@ -187,11 +187,12 @@ class SecureChat {
         this.cancelWaitBtn.addEventListener('click', () => this.cancelWait());
         this.sendBtn.addEventListener('click', () => this.sendMessage());
         this.skipBtn.addEventListener('click', () => this.skipPartner());
-        this.clearChatBtn.addEventListener('click', () => this.manualClearChat()); // Suggestion 6
-        if (this.reportBtn) this.reportBtn.addEventListener('click', () => this.reportUser());
-        if (this.autoSkipBtn) this.autoSkipBtn.addEventListener('click', () => this.toggleAutoSkip());
+        this.skipBtn.addEventListener('click', () => this.skipPartner());
 
-        if (this.exportChatBtn) this.exportChatBtn.addEventListener('click', () => this.exportChat());
+        if (this.exitChatBtn) this.exitChatBtn.addEventListener('click', () => {
+            this.resetToHome();
+        });
+
         if (this.switchCameraBtn) this.switchCameraBtn.addEventListener('click', () => this.switchCamera());
 
         this.skipBtn.title = 'Skip to a new partner (Esc)';
