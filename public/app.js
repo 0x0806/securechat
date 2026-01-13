@@ -1969,19 +1969,21 @@ class SecureChat {
                 
                 <div style="text-align: left; margin: 1.5rem 0; padding: 0 1rem;">
                     <p style="margin-bottom: 0.5rem; color: var(--danger-color); display: flex; align-items: center; gap: 8px;">
-                        <i class="fas fa-exclamation-triangle"></i> <strong>Viewer Discretion Advised (18+)</strong>
+                        <i class="fas fa-exclamation-triangle"></i> <strong>Liability Disclaimer & Terms</strong>
                     </p>
-                    <p style="font-size: 0.9rem; color: var(--secondary-text); margin-bottom: 1.5rem; line-height: 1.4;">
-                        This app contains unmoderated user content. You may encounter NSFW material. 
+                    <p style="font-size: 0.85rem; color: var(--secondary-text); margin-bottom: 1rem; line-height: 1.4;">
+                        SecureChat is a peer-to-peer communication service. The developers, owners, and operators of this application do not record, monitor, or control user-generated content and <strong>accept no liability</strong> for the actions, conduct, or content of any user.
                     </p>
-
+                    <p style="font-size: 0.85rem; color: var(--secondary-text); margin-bottom: 1rem; line-height: 1.4;">
+                        <strong>User Responsibility:</strong> By accessing this platform, you acknowledge that you are solely responsible for your interactions. You agree to indemnify the developers against any claims arising from your use of this service.
+                    </p>
+                    
                     <p style="margin-bottom: 0.5rem; color: var(--success-color); display: flex; align-items: center; gap: 8px;">
-                        <i class="fas fa-lock"></i> <strong>Privacy & Safety</strong>
+                        <i class="fas fa-lock"></i> <strong>Privacy Guarantee</strong>
                     </p>
-                    <ul style="font-size: 0.9rem; color: var(--secondary-text); list-style: none; padding: 0; line-height: 1.6;">
+                    <ul style="font-size: 0.85rem; color: var(--secondary-text); list-style: none; padding: 0; line-height: 1.6;">
                         <li>• 100% Anonymous & End-to-End Encrypted</li>
-                        <li>• No Logs, No Cookies, No History</li>
-                        <li>• Chat history auto-clears on exit</li>
+                        <li>• Zero Data Retention Policy</li>
                     </ul>
                 </div>
 
