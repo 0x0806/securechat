@@ -21,9 +21,9 @@ app.use((req, res, next) => {
     'Content-Security-Policy',
     "default-src 'self'; " + // By default, only allow content from our own origin.
     "script-src 'self'; " + // Allow scripts from our origin.
-    "style-src 'self' 'unsafe-inline'; " + // Allow stylesheets from our origin and inline styles.
-    "font-src 'self' https://ka-f.fontawesome.com; " + // Allow fonts from our origin and Font Awesome's CDN.
-    "connect-src 'self' wss: https://ka-f.fontawesome.com; " + // Allow WebSocket, fetch to our origin and Font Awesome.
+    "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; " + // Allow stylesheets from our origin and inline styles.
+    "font-src 'self' https://cdnjs.cloudflare.com; " + // Allow fonts from our origin and Font Awesome's CDN.
+    "connect-src 'self' wss:; " + // Allow WebSocket, fetch to our origin and Font Awesome.
     "img-src 'self' data:; " + // Allow images from our origin and data: URIs.
     "media-src 'self' blob:;" // Allow media (video/audio) from our origin and blob URIs (for WebRTC).
   );
