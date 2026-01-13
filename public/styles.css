@@ -470,6 +470,13 @@ body {
     opacity: 0.7;
     margin-top: 0.3rem;
 }
+.message-lock-icon {
+    font-size: 0.6rem;
+    margin-right: 5px;
+    opacity: 0.6;
+    display: inline-block;
+    vertical-align: middle;
+}
 
 /* Video Container */
 .video-container {
@@ -586,8 +593,8 @@ body {
 
 /* Message Input */
 .message-input-container {
-    padding: 1.25rem 1.5rem;
-    border-top: 1px solid var(--border);
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--glass-border);
     background: rgba(15, 23, 42, 0.4);
 }
 
@@ -596,56 +603,56 @@ body {
     gap: 0.75rem;
     align-items: center;
     position: relative;
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
     border-radius: 24px;
     padding: 0.25rem 0.5rem;
     transition: border-color 0.2s;
 }
 
 .message-input:focus-within {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
 }
 
 #messageInput {
     flex: 1;
     background: transparent;
     border: none;
-    padding: 0.75rem;
-    color: var(--text-main);
+    padding: 0.6rem;
+    color: var(--primary-text);
     font-size: 1rem;
     outline: none;
 }
 
 #messageInput::placeholder {
-    color: var(--text-tertiary);
+    color: var(--secondary-text);
 }
 
 .send-btn {
     width: 45px;
     height: 45px;
     border: none;
-    border-radius: 50%;
-    background: transparent;
-    color: var(--primary);
+    border-radius: 50%;    
+    background: var(--accent-color);
+    color: white;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    font-size: 1.2rem;
+    font-size: 1rem;
 }
 
 .send-btn:hover {
-    background: var(--bg-surface-hover);
-    color: var(--primary-hover);
+    transform: scale(1.1);
+    box-shadow: 0 0 10px var(--accent-color);
 }
 
 .emoji-btn {
     background: transparent;
     border: none;
-    color: var(--text-tertiary);
+    color: var(--secondary-text);
     font-size: 1.2rem;
     cursor: pointer;
     padding: 0 0.5rem;
@@ -653,21 +660,21 @@ body {
 }
 
 .emoji-btn:hover {
-    color: var(--text-main);
+    color: var(--primary-text);
 }
 
 .emoji-picker {
     position: absolute;
     bottom: 100%;
     left: 0;
-    background: var(--accent-bg);
-    border: 1px solid var(--border);
+    background: var(--secondary-bg);
+    border: 1px solid var(--glass-border);
     border-radius: 12px;
     padding: 0.5rem;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 0.5rem;
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-primary);
     margin-bottom: 10px;
     backdrop-filter: blur(20px);
 }
@@ -682,7 +689,7 @@ body {
 }
 
 .emoji-item:hover {
-    background: var(--bg-surface-hover);
+    background: var(--glass-bg);
 }
 
 /* Notifications */
@@ -699,28 +706,30 @@ body {
 .notification {
     background: var(--glass-bg);
     backdrop-filter: blur(12px);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
     padding: 1rem 1.5rem;
-    color: var(--text-main);
-    box-shadow: var(--shadow-lg);
+    color: var(--primary-text);
+    box-shadow: var(--shadow-primary);
     animation: slideInRight 0.5s ease-out;
     max-width: 300px;
     display: flex;
     align-items: center;
     gap: 0.75rem;
 }
-
+.notification.info {
+    border-left: 4px solid var(--accent-color);
+}
 .notification.success {
-    border-left: 4px solid var(--success);
+    border-left: 4px solid var(--success-color);
 }
 
 .notification.warning {
-    border-left: 4px solid var(--warning);
+    border-left: 4px solid var(--warning-color);
 }
 
 .notification.error {
-    border-left: 4px solid var(--danger);
+    border-left: 4px solid var(--danger-color);
 }
 
 /* Modal */
@@ -742,13 +751,13 @@ body {
 .modal-content {
     background: var(--glass-bg);
     backdrop-filter: blur(16px);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-xl);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
     padding: 2rem;
     max-width: 400px;
     width: 90%;
     text-align: center;
-    box-shadow: var(--shadow-xl);
+    box-shadow: var(--shadow-glass);
     animation: scaleIn 0.3s ease;
 }
 
@@ -762,16 +771,16 @@ body {
 
 .modal-header i {
     font-size: 3rem;
-    color: var(--primary);
+    color: var(--accent-color);
 }
 
 .modal-header h3 {
-    color: var(--text-main);
+    color: var(--primary-text);
     margin: 0;
 }
 
 .modal p {
-    color: var(--text-secondary);
+    color: var(--secondary-text);
     margin-bottom: 2rem;
     line-height: 1.6;
 }
@@ -785,7 +794,7 @@ body {
 .modal-btn {
     padding: 0.8rem 1.5rem;
     border: none;
-    border-radius: var(--radius-md);
+    border-radius: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -796,22 +805,22 @@ body {
 
 .decline-btn {
     background: transparent;
-    border: 1px solid var(--danger);
-    color: var(--danger);
+    border: 1px solid var(--danger-color);
+    color: var(--danger-color);
 }
 
 .decline-btn:hover {
-    background: rgba(239, 68, 68, 0.1);
+    background: var(--danger-color);
     color: white;
 }
 
 .accept-btn {
-    background: var(--primary);
+    background: var(--accent-color);
     color: white;
 }
 
 .accept-btn:hover {
-    background: var(--primary-hover);
+    box-shadow: 0 0 10px var(--accent-color);
 }
 
 /* Utility Classes */
