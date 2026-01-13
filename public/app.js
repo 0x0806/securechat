@@ -1968,23 +1968,22 @@ class SecureChat {
                 <h2>Welcome to SecureChat</h2>
                 
                 <div style="text-align: left; margin: 1.5rem 0; padding: 0 1rem;">
-                    <p style="margin-bottom: 0.5rem; color: var(--danger-color); display: flex; align-items: center; gap: 8px;">
-                        <i class="fas fa-exclamation-triangle"></i> <strong>Liability Disclaimer & Terms</strong>
+                    <div style="background: rgba(255, 71, 87, 0.1); border-left: 3px solid var(--danger-color); padding: 10px; margin-bottom: 15px; border-radius: 4px;">
+                        <p style="margin: 0 0 5px 0; font-size: 0.9rem; color: var(--danger-color); font-weight: bold;">
+                            <i class="fas fa-exclamation-triangle"></i> NSFW / MATURE CONTENT (18+)
+                        </p>
+                        <p style="margin: 0; font-size: 0.8rem; color: var(--secondary-text);">
+                            This service is unmoderated. You may encounter explicit content.
+                        </p>
+                    </div>
+
+                    <p style="font-size: 0.8rem; color: var(--secondary-text); line-height: 1.5; margin-bottom: 10px;">
+                        <strong>Disclaimer:</strong> This is a P2P service. The developer accepts <strong>NO LIABILITY</strong> for user conduct or content. You are solely responsible for your interactions.
                     </p>
-                    <p style="font-size: 0.85rem; color: var(--secondary-text); margin-bottom: 1rem; line-height: 1.4;">
-                        SecureChat is a peer-to-peer communication service. The developers, owners, and operators of this application do not record, monitor, or control user-generated content and <strong>accept no liability</strong> for the actions, conduct, or content of any user.
+
+                    <p style="margin-bottom: 0.5rem; color: var(--success-color); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-lock"></i> 100% Anonymous & Encrypted
                     </p>
-                    <p style="font-size: 0.85rem; color: var(--secondary-text); margin-bottom: 1rem; line-height: 1.4;">
-                        <strong>User Responsibility:</strong> By accessing this platform, you acknowledge that you are solely responsible for your interactions. You agree to indemnify the developers against any claims arising from your use of this service.
-                    </p>
-                    
-                    <p style="margin-bottom: 0.5rem; color: var(--success-color); display: flex; align-items: center; gap: 8px;">
-                        <i class="fas fa-lock"></i> <strong>Privacy Guarantee</strong>
-                    </p>
-                    <ul style="font-size: 0.85rem; color: var(--secondary-text); list-style: none; padding: 0; line-height: 1.6;">
-                        <li>• 100% Anonymous & End-to-End Encrypted</li>
-                        <li>• Zero Data Retention Policy</li>
-                    </ul>
                 </div>
 
                 <div class="nsfw-actions">
