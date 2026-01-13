@@ -14,6 +14,8 @@ class SecureChat {
         this.chatMode = 'text'; // 'text' or 'video'
         this.originalTitle = document.title;
         this.titleInterval = null;
+        this.keyPair = null;
+        this.sharedSecret = null;
         
         this.initializeElements();
         this.bindEvents();
@@ -139,6 +141,7 @@ class SecureChat {
             this.showNotification('Partner found! Start chatting', 'success');
             this.playSound('found');
             this.updatePartnerStatus('Online');
+            this.initEncryption();
             
             // Auto-start video if in video mode
             if (this.chatMode === 'video') {
@@ -162,8 +165,16 @@ class SecureChat {
             }
         });
         
-        this.socket.on('message-received', (data) => {
+        this.socket.on('message-received', async (data) => {
             if (data.senderId !== this.socket.id) {
+                // Attempt to decrypt if encryption is active
+                if (this.sharedSecret) {
+                    const decrypted = await this.decryptMessage(data.message);
+                    if (decrypted) data.message = decrypted;
+                } else if (data.message.includes('"iv":') && data.message.includes('"content":')) {
+                    // Handle race condition: Encrypted message arrived before key exchange completed
+                    data.message = '🔒 <i>Encrypted message (waiting for key...)</i>';
+                }
                 this.displayMessage(data.message, false, data.timestamp);
                 this.playSound('message');
                 this.flashTitle('New Message!');
@@ -176,6 +187,10 @@ class SecureChat {
         
         this.socket.on('partner-disconnected', () => {
             this.handlePartnerDisconnect();
+        });
+
+        this.socket.on('exchange-key', async (data) => {
+            await this.handleKeyExchange(data);
         });
         
         this.socket.on('video-call-request', (data) => {
@@ -365,7 +380,7 @@ class SecureChat {
         this.showScreen('welcome');
     }
     
-    sendMessage() {
+    async sendMessage() {
         const message = this.messageInput.value.trim();
         if (!message) {
             return;
@@ -381,13 +396,22 @@ class SecureChat {
             return;
         }
         
-        this.socket.emit('send-message', { message });
+        let messageToSend = message;
+        
+        // Encrypt if shared secret exists
+        if (this.sharedSecret) {
+            const encrypted = await this.encryptMessage(message);
+            if (encrypted) messageToSend = encrypted;
+        }
+
+        this.socket.emit('send-message', { message: messageToSend });
         this.displayMessage(message, true);
         this.messageInput.value = '';
         this.stopTyping();
     }
     
     skipPartner() {
+        this.resetEncryption();
         this.socket.emit('skip-partner');
         this.endCall();
         this.clearChat();
@@ -802,6 +826,7 @@ class SecureChat {
     }
     
     handlePartnerDisconnect() {
+        this.resetEncryption();
         this.endCall();
         this.partnerId = null;
         this.roomId = null;
@@ -1069,6 +1094,116 @@ class SecureChat {
             clearInterval(this.titleInterval);
             this.titleInterval = null;
             document.title = this.originalTitle;
+        }
+    }
+
+    // --- Encryption Methods ---
+
+    async initEncryption() {
+        try {
+            this.keyPair = await window.crypto.subtle.generateKey(
+                { name: "ECDH", namedCurve: "P-256" },
+                true,
+                ["deriveKey"]
+            );
+
+            const publicKeyJwk = await window.crypto.subtle.exportKey(
+                "jwk",
+                this.keyPair.publicKey
+            );
+
+            this.socket.emit('exchange-key', { key: publicKeyJwk });
+        } catch (e) {
+            console.error('Encryption setup failed:', e);
+        }
+    }
+
+    async handleKeyExchange(data) {
+        if (data.senderId === this.socket.id) return;
+        
+        try {
+            const remoteKey = await window.crypto.subtle.importKey(
+                "jwk",
+                data.key,
+                { name: "ECDH", namedCurve: "P-256" },
+                true,
+                []
+            );
+
+            this.sharedSecret = await window.crypto.subtle.deriveKey(
+                { name: "ECDH", public: remoteKey },
+                this.keyPair.privateKey,
+                { name: "AES-GCM", length: 256 },
+                true,
+                ["encrypt", "decrypt"]
+            );
+            
+            this.showNotification('🔒 End-to-End Encryption Enabled', 'success');
+            this.updateSecurityIcon(true);
+        } catch (e) {
+            console.error('Key exchange failed:', e);
+        }
+    }
+
+    async encryptMessage(text) {
+        try {
+            const enc = new TextEncoder();
+            const encoded = enc.encode(text);
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            
+            const ciphertext = await window.crypto.subtle.encrypt(
+                { name: "AES-GCM", iv: iv },
+                this.sharedSecret,
+                encoded
+            );
+
+            const ivStr = btoa(String.fromCharCode(...iv));
+            const contentStr = btoa(String.fromCharCode(...new Uint8Array(ciphertext)));
+            
+            return JSON.stringify({ iv: ivStr, content: contentStr });
+        } catch (e) {
+            console.error('Encryption failed:', e);
+            return null;
+        }
+    }
+
+    async decryptMessage(encryptedData) {
+        try {
+            const data = JSON.parse(encryptedData);
+            const iv = new Uint8Array(atob(data.iv).split('').map(c => c.charCodeAt(0)));
+            const ciphertext = new Uint8Array(atob(data.content).split('').map(c => c.charCodeAt(0)));
+
+            const decrypted = await window.crypto.subtle.decrypt(
+                { name: "AES-GCM", iv: iv },
+                this.sharedSecret,
+                ciphertext
+            );
+
+            return new TextDecoder().decode(decrypted);
+        } catch (e) {
+            // Fail silently if message isn't encrypted or decryption fails
+            return null;
+        }
+    }
+
+    resetEncryption() {
+        this.sharedSecret = null;
+        this.keyPair = null;
+        this.updateSecurityIcon(false);
+    }
+
+    updateSecurityIcon(isSecure) {
+        const logoIcon = document.querySelector('.logo i');
+        if (logoIcon) {
+            if (isSecure) {
+                logoIcon.className = 'fas fa-lock';
+                logoIcon.style.color = 'var(--success-color)';
+                logoIcon.style.textShadow = '0 0 10px rgba(0, 255, 136, 0.3)';
+            } else {
+                logoIcon.className = 'fas fa-shield-alt';
+                logoIcon.style.color = '';
+                logoIcon.style.textShadow = '';
+            }
         }
     }
 }
