@@ -59,11 +59,28 @@ io.on('connection', (socket) => {
   
   socket.on('send-message', (data) => {
     const chat = activeChats.get(socket.id);
-    if (chat) {
+    
+    // Security: Validate message content and length on server side
+    if (chat && data.message && typeof data.message === 'string') {
+      // Enforce max length (increased to 2000 to allow for encrypted payload overhead)
+      const messageContent = data.message.trim().substring(0, 2000);
+      
+      if (messageContent.length > 0) {
       io.to(chat.roomId).emit('message-received', {
-        message: data.message,
+          message: messageContent,
         senderId: socket.id,
         timestamp: Date.now()
+      });
+      }
+    }
+  });
+
+  socket.on('exchange-key', (data) => {
+    const chat = activeChats.get(socket.id);
+    if (chat) {
+      io.to(chat.partnerId).emit('exchange-key', {
+        key: data.key,
+        senderId: socket.id
       });
     }
   });
