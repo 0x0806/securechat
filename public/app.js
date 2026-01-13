@@ -111,10 +111,7 @@ class SecureChat {
         this.toggleVideoBtn.setAttribute('aria-label', 'Toggle your video');
         this.toggleAudioBtn = document.getElementById('toggleAudioBtn');
         this.toggleAudioBtn.setAttribute('aria-label', 'Toggle your microphone');
-        this.screenShareBtn = document.getElementById('screenShareBtn'); // New
-        this.pipBtn = document.getElementById('pipBtn'); // New
         this.switchCameraBtn = document.getElementById('switchCameraBtn'); // Suggestion 5
-        this.screenshotBtn = document.getElementById('screenshotBtn'); // Suggestion 6
         this.endCallBtn = document.getElementById('endCallBtn');
         this.endCallBtn.setAttribute('aria-label', 'End call');
         this.skipVideoBtn = document.getElementById('skipVideoBtn');
@@ -195,10 +192,7 @@ class SecureChat {
         if (this.autoSkipBtn) this.autoSkipBtn.addEventListener('click', () => this.toggleAutoSkip());
 
         if (this.exportChatBtn) this.exportChatBtn.addEventListener('click', () => this.exportChat());
-        if (this.screenShareBtn) this.screenShareBtn.addEventListener('click', () => this.toggleScreenShare());
-        if (this.pipBtn) this.pipBtn.addEventListener('click', () => this.togglePiP());
         if (this.switchCameraBtn) this.switchCameraBtn.addEventListener('click', () => this.switchCamera());
-        if (this.screenshotBtn) this.screenshotBtn.addEventListener('click', () => this.takeScreenshot());
 
         this.skipBtn.title = 'Skip to a new partner (Esc)';
 
