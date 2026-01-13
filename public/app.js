@@ -653,6 +653,29 @@ class SecureChat {
         }, 100);
     }
 
+    /** Handles partner disconnection events. */
+    handlePartnerDisconnect() {
+        if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+
+        this.showNotification('Partner disconnected. Searching for new partner...', 'info');
+        this.playSound('message');
+
+        this.resetEncryption();
+        // Clean up call but keep local video stream for seamless UX
+        this.endCall({ stopLocalStream: false, keepUI: true });
+
+        this.clearChat();
+        this.showScreen('waiting');
+
+        // Auto-search immediately
+        this.startChat();
+
+        // Auto-focus input
+        setTimeout(() => {
+            if (this.messageInput) this.messageInput.focus();
+        }, 100);
+    }
+
     // --- Video & Call Management ---
 
     /**
