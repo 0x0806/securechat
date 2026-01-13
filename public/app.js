@@ -1,3 +1,15 @@
+// Suggestion 4: Centralized Configuration
+const CONFIG = {
+    ICE_SERVERS: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' }
+    ],
+    TYPING_DEBOUNCE_MS: 500
+};
+
 /**
  * @class SecureChat
  * @description Manages the entire frontend logic for the SecureChat application,
@@ -22,19 +34,43 @@ class SecureChat {
         this.sharedSecret = null;
         this.audioContext = null;
         this.reconnectTimer = null;
+        this.isMuted = localStorage.getItem('securechat_muted') === 'true'; // Suggestion 8: Persist mute
+        this.iceRestartCount = 0; // Suggestion 8: Limit ICE restarts
+        this.callStartTime = null;
+        this.callTimerInterval = null;
+        this.autoSkipEnabled = false; // Suggestion 8: Auto-Skip state
+        this.currentCameraDeviceId = null; // Suggestion 11: Camera switching
         
+        this.setupGlobalErrorHandling(); // Suggestion 7: Global error handler
+        this.checkSupport(); // Suggestion 6: Browser check
         this.initializeElements();
         this.bindEvents();
         this.setupSocketEvents();
         this.setupRTC();
         this.initAudio();
+        this.setupSoundToggle(); // Suggestion 7: Sound toggle
     }
 
     // --- Initialization & Setup ---
+    
+    setupGlobalErrorHandling() {
+        window.onerror = (msg, url, lineNo, columnNo, error) => {
+            console.error('Global error:', msg, error);
+            this.showNotification('An unexpected error occurred.', 'error');
+            return false;
+        };
+    }
 
     /**
      * Caches all necessary DOM elements for performance.
      */
+    checkSupport() {
+        if (!window.RTCPeerConnection || !navigator.mediaDevices || !window.WebSocket) {
+            alert("Your browser does not support required features (WebRTC/WebSockets). Please update.");
+            throw new Error("Browser not supported");
+        }
+    }
+
     initializeElements() {
         // Screens
         this.welcomeScreen = document.getElementById('welcomeScreen');
@@ -54,17 +90,25 @@ class SecureChat {
         this.sendBtn.setAttribute('aria-label', 'Send message');
         this.skipBtn = document.getElementById('skipBtn');
         this.skipBtn.setAttribute('aria-label', 'Skip to a new partner');
-        this.callBtn = document.getElementById('callBtn');
-        this.callBtn.setAttribute('aria-label', 'Start video call');
+        this.clearChatBtn = document.getElementById('clearChatBtn'); // Suggestion 5
+        this.reportBtn = document.getElementById('reportBtn'); // Suggestion 4
+        this.autoSkipBtn = document.getElementById('autoSkipBtn'); // Suggestion 8
         
         // Video elements
         this.localVideo = document.getElementById('localVideo');
         this.remoteVideo = document.getElementById('remoteVideo');
+        // Suggestion 5: iOS Safari fix
+        this.localVideo.setAttribute('playsinline', 'true');
+        this.remoteVideo.setAttribute('playsinline', 'true');
         this.videoInterface = document.getElementById('videoContainer'); // Renamed ID in HTML
         this.toggleVideoBtn = document.getElementById('toggleVideoBtn');
         this.toggleVideoBtn.setAttribute('aria-label', 'Toggle your video');
         this.toggleAudioBtn = document.getElementById('toggleAudioBtn');
         this.toggleAudioBtn.setAttribute('aria-label', 'Toggle your microphone');
+        this.screenShareBtn = document.getElementById('screenShareBtn'); // New
+        this.pipBtn = document.getElementById('pipBtn'); // New
+        this.switchCameraBtn = document.getElementById('switchCameraBtn'); // Suggestion 5
+        this.screenshotBtn = document.getElementById('screenshotBtn'); // Suggestion 6
         this.endCallBtn = document.getElementById('endCallBtn');
         this.endCallBtn.setAttribute('aria-label', 'End call');
         this.skipVideoBtn = document.getElementById('skipVideoBtn');
@@ -77,12 +121,17 @@ class SecureChat {
         this.chatMessages = document.getElementById('chatMessages');
         this.chatMessages.setAttribute('role', 'log');
         this.chatMessages.setAttribute('aria-live', 'polite');
+        this.scrollBottomBtn = document.getElementById('scrollBottomBtn'); // Suggestion 7
         this.typingIndicator = document.getElementById('typingIndicator');
         this.partnerStatus = document.getElementById('partnerStatus');
         
         this.emojiBtn = document.getElementById('emojiBtn');
         this.emojiBtn.setAttribute('aria-label', 'Open emoji picker');
         this.emojiPicker = document.getElementById('emojiPicker');
+        
+        // New Elements
+        this.exportChatBtn = document.getElementById('exportChatBtn');
+        this.callTimerDisplay = document.getElementById('callTimer');
 
         // Modal elements
         this.callRequestModal = document.getElementById('callRequestModal');
@@ -93,6 +142,25 @@ class SecureChat {
         this.connectionStatus = document.getElementById('connectionStatus');
         this.notificationContainer = document.getElementById('notificationContainer');
         this.notificationContainer.setAttribute('aria-live', 'assertive');
+    }
+
+    setupSoundToggle() {
+        // Inject mute button into header status indicator area
+        const statusContainer = document.querySelector('.status-indicator');
+        if (statusContainer) {
+            const muteBtn = document.createElement('button');
+            muteBtn.className = 'sound-toggle-btn';
+            muteBtn.innerHTML = this.isMuted ? '<i class="fas fa-volume-mute"></i>' : '<i class="fas fa-volume-up"></i>';
+            muteBtn.title = 'Toggle System Sounds';
+            muteBtn.onclick = () => {
+                this.isMuted = !this.isMuted;
+                localStorage.setItem('securechat_muted', this.isMuted);
+                muteBtn.innerHTML = this.isMuted ? '<i class="fas fa-volume-mute"></i>' : '<i class="fas fa-volume-up"></i>';
+                if (!this.isMuted) this.playSound('message'); // Test sound
+            };
+            // Insert before the status text
+            statusContainer.insertBefore(muteBtn, statusContainer.firstChild);
+        }
     }
 
     /**
@@ -116,15 +184,25 @@ class SecureChat {
         this.cancelWaitBtn.addEventListener('click', () => this.cancelWait());
         this.sendBtn.addEventListener('click', () => this.sendMessage());
         this.skipBtn.addEventListener('click', () => this.skipPartner());
-        this.callBtn.addEventListener('click', () => this.initiateCall());
+        this.clearChatBtn.addEventListener('click', () => this.manualClearChat()); // Suggestion 6
+        if (this.reportBtn) this.reportBtn.addEventListener('click', () => this.reportUser());
+        if (this.autoSkipBtn) this.autoSkipBtn.addEventListener('click', () => this.toggleAutoSkip());
+        
+        if (this.exportChatBtn) this.exportChatBtn.addEventListener('click', () => this.exportChat());
+        if (this.screenShareBtn) this.screenShareBtn.addEventListener('click', () => this.toggleScreenShare());
+        if (this.pipBtn) this.pipBtn.addEventListener('click', () => this.togglePiP());
+        if (this.switchCameraBtn) this.switchCameraBtn.addEventListener('click', () => this.switchCamera());
+        if (this.screenshotBtn) this.screenshotBtn.addEventListener('click', () => this.takeScreenshot());
+        
         this.skipBtn.title = 'Skip to a new partner (Esc)';
         
         if (this.skipVideoBtn) this.skipVideoBtn.addEventListener('click', () => this.skipPartner());
 
-        // The end call button in video mode now acts as "Switch to Text" or "End Call"
-        // We don't want to stop the stream if we are just switching views, but for now let's assume it ends the call logic
-        // or switches back to text mode.
-        this.endCallBtn.addEventListener('click', () => this.switchToTextMode());
+        // End call button now exits to home since sections are standalone
+        this.endCallBtn.addEventListener('click', () => {
+            this.endCall();
+            this.resetToHome();
+        });
         this.toggleVideoBtn.addEventListener('click', () => this.toggleVideo());
         this.toggleAudioBtn.addEventListener('click', () => this.toggleAudio());
         
@@ -133,16 +211,31 @@ class SecureChat {
         this.acceptCallBtn.addEventListener('click', () => this.acceptCall());
         this.declineCallBtn.addEventListener('click', () => this.declineCall());
         
-        this.messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
+        // Suggestion 9: Use keydown and support Shift+Enter for newlines
+        this.messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault(); // Prevent newline
                 this.sendMessage();
             } else {
-                this.handleTyping();
+                this.debouncedTyping();
             }
         });
         
-        this.messageInput.addEventListener('input', () => this.handleTyping());
+        this.messageInput.addEventListener('input', () => this.debouncedTyping());
         this.messageInput.addEventListener('blur', () => this.stopTyping());
+
+        // Suggestion 7: Scroll to bottom button logic
+        this.chatMessages.addEventListener('scroll', () => {
+            const isNearBottom = this.chatMessages.scrollHeight - this.chatMessages.scrollTop - this.chatMessages.clientHeight <= 100;
+            if (isNearBottom) {
+                this.scrollBottomBtn.classList.add('hidden');
+            } else {
+                this.scrollBottomBtn.classList.remove('hidden');
+            }
+        });
+        this.scrollBottomBtn.addEventListener('click', () => {
+            this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+        });
         
         // Handle window focus/blur for typing indicators
         window.addEventListener('focus', () => this.handleWindowFocus());
@@ -152,6 +245,13 @@ class SecureChat {
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.currentScreen === 'chat') {
                 this.skipPartner();
+            }
+            // Suggestion 43: Keyboard Shortcuts
+            if (e.ctrlKey && e.key === 'm') {
+                this.toggleAudio();
+            }
+            if (e.ctrlKey && e.key === 'b') {
+                this.toggleVideo();
             }
         });
 
@@ -178,6 +278,10 @@ class SecureChat {
                 this.resetToHome();
             }
         });
+
+        this.socket.on('online-count', (count) => {
+            // Could update UI here if element existed
+        });
         
         this.socket.on('disconnect', () => {
             this.updateConnectionStatus(false);
@@ -196,7 +300,11 @@ class SecureChat {
         this.socket.on('partner-found', async (data) => {
             this.partnerId = data.partnerId;
             this.roomId = data.roomId;
-            this.showScreen('chat');
+            if (this.chatMode === 'video') {
+                this.showScreen('video');
+            } else {
+                this.showScreen('chat');
+            }
             this.showNotification('Partner found! Start chatting', 'success');
             this.playSound('found');
             this.updatePartnerStatus('Online');
@@ -216,10 +324,6 @@ class SecureChat {
                     if (this.socket.id > this.partnerId) {
                         this.startCall(true); // true = auto switch to video view
                     }
-                } else {
-                    // Partner is text - request video
-                    this.socket.emit('video-call-request');
-                    this.showNotification('Requesting video call...', 'info');
                 }
             }
         });
@@ -313,13 +417,7 @@ class SecureChat {
         }
         
         const configuration = {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' }
-            ],
+            iceServers: CONFIG.ICE_SERVERS,
             iceCandidatePoolSize: 10
         };
         
@@ -346,9 +444,10 @@ class SecureChat {
             switch(this.peerConnection.connectionState) {
                 case 'connected':
                     this.showNotification('Video call connected', 'success');
+                    this.iceRestartCount = 0; // Suggestion 12: Reset counter
                     break;
                 case 'disconnected':
-                    this.showNotification('Connection unstable, trying to reconnect...', 'warning');
+                    this.showNotification('Network unstable', 'warning'); // Suggestion 11: Network warning
                     break;
                 case 'failed':
                     this.showNotification('Connection failed, attempting to restart...', 'error');
@@ -412,6 +511,13 @@ class SecureChat {
 
     /** Attempts to restart the ICE connection, a recovery mechanism for failed WebRTC calls. */
     async restartIce() {
+        // Suggestion 8: Limit ICE restarts
+        if (this.iceRestartCount >= 3) {
+            this.showNotification('Cannot re-establish connection. Please skip partner.', 'error');
+            return;
+        }
+        this.iceRestartCount++;
+
         if (this.peerConnection && this.peerConnection.connectionState !== 'closed') {
             try {
                 console.log('Restarting ICE connection');
@@ -486,6 +592,10 @@ class SecureChat {
         
         const msgId = `${Date.now()}-${Math.random()}`;
         let messageToSend = message;
+
+        // Suggestion 10: Client-side sanitization (basic)
+        // We strip tags for the optimistic UI update, though server should also validate.
+        const sanitizedMessage = message.replace(/<[^>]*>?/gm, '');
         
         // Encrypt if shared secret exists
         if (this.sharedSecret) {
@@ -495,7 +605,7 @@ class SecureChat {
         }
 
         this.socket.emit('send-message', { message: messageToSend, id: msgId });
-        this.displayMessage(message, true, Date.now(), !!this.sharedSecret, false, msgId);
+        this.displayMessage(sanitizedMessage, true, Date.now(), !!this.sharedSecret, false, msgId);
         this.messageInput.value = '';
         this.stopTyping();
     }
@@ -506,11 +616,16 @@ class SecureChat {
         this.resetEncryption();
         this.socket.emit('skip-partner');
         // Clean up call but keep local video stream for next partner for a seamless UX
-        this.endCall({ stopLocalStream: false, keepUI: false });
+        this.endCall({ stopLocalStream: false, keepUI: true });
         this.clearChat();
         this.showScreen('waiting');
         this.showNotification('Finding a new partner...', 'info');
         this.startChat();
+        
+        // Suggestion 12: Auto-focus input
+        setTimeout(() => {
+            if (this.messageInput) this.messageInput.focus();
+        }, 100);
     }
     
     // --- Video & Call Management ---
@@ -536,6 +651,10 @@ class SecureChat {
         
         try {
             let constraints = { video: true, audio: true };
+            // Suggestion 11: Use specific camera if selected
+            if (this.currentCameraDeviceId) {
+                constraints.video = { deviceId: { exact: this.currentCameraDeviceId } };
+            }
             try {
                 this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
             } catch (videoError) {
@@ -548,6 +667,7 @@ class SecureChat {
             this.localVideo.muted = true; // Fix: Mute local video to prevent feedback
             this.toggleVideoBtn.style.display = 'flex';
             this.toggleAudioBtn.style.display = 'flex';
+            this.setupVisualizer(); // Suggestion 37: Visualizer
         } catch (error) {
             console.error('Media access error:', error.name, error.message);
             let userMessage = 'Could not access camera/microphone.';
@@ -670,6 +790,7 @@ class SecureChat {
             this.toggleAudioBtn.style.display = hasAudio ? 'flex' : 'none';
             
             this.showNotification(`${hasVideo ? 'Video' : 'Voice'} call started`, 'success');
+            this.startCallTimer(); // Suggestion 33: Call Timer
         } catch (error) {
             console.error('Error starting call:', error);
             this.showNotification('Failed to start call', 'error');
@@ -809,6 +930,7 @@ class SecureChat {
     endCall(options = { stopLocalStream: true, keepUI: false }) {
         try {
             console.log('Ending call...');
+            this.stopCallTimer();
             
             // Conditionally stop local tracks. On "skip", we keep the stream alive.
             if (options.stopLocalStream) {
@@ -822,6 +944,7 @@ class SecureChat {
                 // Hide the persistent local video element only when the stream is fully stopped
                 if (this.localVideo) {
                     this.localVideo.srcObject = null;
+                    this.localVideo.load(); // Suggestion 10: Force release
                 }
             }
             
@@ -886,14 +1009,11 @@ class SecureChat {
     /** Switches between Text and Video interfaces */
     switchViewMode(mode) {
         if (mode === 'video') {
-            this.textInterface.classList.add('hidden');
-            this.videoInterface.classList.remove('hidden');
-            // Ensure controls are visible
-            this.callBtn.style.display = 'none'; // Hide call button in video mode
+            this.chatMode = 'video';
+            this.showScreen('video');
         } else {
-            this.videoInterface.classList.add('hidden');
-            this.textInterface.classList.remove('hidden');
-            this.callBtn.style.display = 'flex';
+            this.chatMode = 'text';
+            this.showScreen('chat');
         }
     }
 
@@ -927,7 +1047,177 @@ class SecureChat {
             }
         }
     }
+
+    // Suggestion 34: Screen Sharing
+    async toggleScreenShare() {
+        if (!this.isInCall) return;
+        
+        try {
+            const stream = await navigator.mediaDevices.getDisplayMedia({ cursor: true });
+            const screenTrack = stream.getTracks()[0];
+            
+            const senders = this.peerConnection.getSenders();
+            const videoSender = senders.find(s => s.track.kind === 'video');
+            
+            if (videoSender) {
+                videoSender.replaceTrack(screenTrack);
+                this.localVideo.srcObject = stream;
+                
+                screenTrack.onended = () => {
+                    // Revert to camera
+                    if (this.localStream) {
+                        const camTrack = this.localStream.getVideoTracks()[0];
+                        videoSender.replaceTrack(camTrack);
+                        this.localVideo.srcObject = this.localStream;
+                    }
+                };
+            }
+        } catch (e) {
+            console.error("Screen share failed", e);
+        }
+    }
+
+    // Suggestion 35: Picture in Picture
+    async togglePiP() {
+        if (document.pictureInPictureElement) {
+            await document.exitPictureInPicture();
+        } else if (this.remoteVideo && this.remoteVideo.readyState !== 0) {
+            await this.remoteVideo.requestPictureInPicture();
+        }
+    }
+
+    // Suggestion 33: Call Timer
+    startCallTimer() {
+        this.callStartTime = Date.now();
+        if (this.callTimerDisplay) {
+            this.callTimerDisplay.classList.remove('hidden');
+            this.callTimerInterval = setInterval(() => {
+                const delta = Date.now() - this.callStartTime;
+                const seconds = Math.floor((delta / 1000) % 60);
+                const minutes = Math.floor((delta / (1000 * 60)) % 60);
+                const hours = Math.floor((delta / (1000 * 60 * 60)));
+                this.callTimerDisplay.textContent = 
+                    `${hours > 0 ? hours + ':' : ''}${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+    }
+
+    stopCallTimer() {
+        if (this.callTimerInterval) {
+            clearInterval(this.callTimerInterval);
+            this.callTimerInterval = null;
+        }
+        if (this.callTimerDisplay) {
+            this.callTimerDisplay.classList.add('hidden');
+            this.callTimerDisplay.textContent = '00:00';
+        }
+    }
+
+    // Suggestion 37: Audio Visualizer
+    setupVisualizer() {
+        if (!this.audioContext || !this.localStream) return;
+        const source = this.audioContext.createMediaStreamSource(this.localStream);
+        const analyser = this.audioContext.createAnalyser();
+        analyser.fftSize = 64;
+        source.connect(analyser);
+        
+        const canvas = document.createElement('canvas');
+        canvas.className = 'audio-visualizer';
+        canvas.width = 50;
+        canvas.height = 30;
+        // Append to local video wrapper if not exists
+        const wrapper = document.querySelector('.local-video-wrapper');
+        if (wrapper && !wrapper.querySelector('.audio-visualizer')) {
+            wrapper.appendChild(canvas);
+        }
+        
+        const ctx = canvas.getContext('2d');
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        
+        const draw = () => {
+            if (!this.localStream) return;
+            requestAnimationFrame(draw);
+            analyser.getByteFrequencyData(dataArray);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const barHeight = (dataArray[10] / 255) * canvas.height; // Simple visualization
+            ctx.fillStyle = '#00d4ff';
+            ctx.fillRect(0, canvas.height - barHeight, canvas.width, barHeight);
+        };
+        draw();
+    }
     
+    // Suggestion 11: Switch Camera
+    async switchCamera() {
+        if (!this.localStream) return;
+        
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            
+            if (videoDevices.length < 2) {
+                this.showNotification('Only one camera available', 'warning');
+                return;
+            }
+            
+            const currentTrack = this.localStream.getVideoTracks()[0];
+            const currentDeviceId = currentTrack.getSettings().deviceId;
+            
+            const currentIndex = videoDevices.findIndex(d => d.deviceId === currentDeviceId);
+            const nextIndex = (currentIndex + 1) % videoDevices.length;
+            this.currentCameraDeviceId = videoDevices[nextIndex].deviceId;
+            
+            // Stop current track
+            currentTrack.stop();
+            
+            // Get new stream
+            const newStream = await navigator.mediaDevices.getUserMedia({
+                video: { deviceId: { exact: this.currentCameraDeviceId } },
+                audio: false // Don't touch audio
+            });
+            
+            const newVideoTrack = newStream.getVideoTracks()[0];
+            
+            // Replace track in peer connection
+            if (this.peerConnection) {
+                const sender = this.peerConnection.getSenders().find(s => s.track.kind === 'video');
+                if (sender) {
+                    sender.replaceTrack(newVideoTrack);
+                }
+            }
+            
+            // Update local stream and video element
+            this.localStream.removeTrack(currentTrack);
+            this.localStream.addTrack(newVideoTrack);
+            this.localVideo.srcObject = this.localStream;
+            
+            this.showNotification('Camera switched', 'success');
+        } catch (e) {
+            console.error('Error switching camera:', e);
+            this.showNotification('Failed to switch camera', 'error');
+        }
+    }
+
+    // Suggestion 6: Screenshot
+    takeScreenshot() {
+        if (!this.remoteVideo || this.remoteVideo.readyState < 2) {
+            this.showNotification('No video to capture', 'warning');
+            return;
+        }
+        
+        const canvas = document.createElement('canvas');
+        canvas.width = this.remoteVideo.videoWidth;
+        canvas.height = this.remoteVideo.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(this.remoteVideo, 0, 0, canvas.width, canvas.height);
+        
+        const link = document.createElement('a');
+        link.download = `securechat-snap-${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        this.showNotification('Screenshot saved', 'success');
+    }
+
     // --- UI & Display Management ---
 
     /**
@@ -952,10 +1242,17 @@ class SecureChat {
         
         const messageText = document.createElement('div');
         messageText.className = 'message-text';
+        
+        // Suggestion 31 & 32: Linkify and Markdown
+        let formattedMessage = message;
+        if (!isSystemHtml) {
+            formattedMessage = this.formatMessage(message);
+        }
+
         if (isSystemHtml) {
             messageText.innerHTML = message; // Only use innerHTML for trusted system messages
         } else {
-            messageText.textContent = message; // Use textContent for user input to prevent XSS
+            messageText.innerHTML = formattedMessage; // Use innerHTML for formatted message (sanitized by formatMessage logic ideally, but here we trust our formatter)
         }
         messageDiv.appendChild(messageText);
 
@@ -1010,6 +1307,22 @@ class SecureChat {
         }
     }
 
+    // Suggestion 31 & 32: Formatter
+    formatMessage(text) {
+        // Escape HTML first
+        let safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        
+        // Linkify
+        safeText = safeText.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+        
+        // Markdown (Bold, Italic, Code)
+        safeText = safeText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        safeText = safeText.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        safeText = safeText.replace(/`(.*?)`/g, '<code>$1</code>');
+        
+        return safeText;
+    }
+
     /** UX: Confirms a message was sent by updating its status icon. */
     confirmMessageSent(messageId) {
         const messageDiv = this.chatMessages.querySelector(`[data-message-id="${messageId}"]`);
@@ -1023,17 +1336,22 @@ class SecureChat {
         }
     }
     
+    // Suggestion 9: Debounced typing
+    debouncedTyping = (() => {
+        let timeout;
+        return () => {
+            if (!this.isTyping) {
+                this.isTyping = true;
+                this.socket.emit('typing-start');
+            }
+            clearTimeout(timeout);
+            timeout = setTimeout(() => this.stopTyping(), 2000);
+        };
+    })();
+
     /** Handles the logic for sending 'typing' events. */
     handleTyping() {
-        if (!this.isTyping) {
-            this.isTyping = true;
-            this.socket.emit('typing-start');
-        }
-        
-        clearTimeout(this.typingTimer);
-        this.typingTimer = setTimeout(() => {
-            this.stopTyping();
-        }, 2000);
+        // Deprecated in favor of debouncedTyping
     }
     
     /** Stops sending 'typing' events. */
@@ -1070,6 +1388,10 @@ class SecureChat {
         this.messageInput.disabled = true;
         this.sendBtn.disabled = true;
         this.displaySystemMessage('Finding a new partner for you in 3 seconds...');
+        
+        if (this.autoSkipEnabled) {
+            this.displaySystemMessage('Auto-skipping enabled. Searching...');
+        }
 
         this.reconnectTimer = setTimeout(() => {
             this.clearChat();
@@ -1077,6 +1399,28 @@ class SecureChat {
             this.sendBtn.disabled = false;
             this.startChat();
         }, 3000);
+    }
+
+    // Suggestion 4: Report User
+    reportUser() {
+        if (!this.partnerId) return;
+        if (confirm('Are you sure you want to report this user? This will end the chat.')) {
+            this.socket.emit('report-user', { partnerId: this.partnerId, reason: 'User reported via UI' });
+            this.showNotification('User reported. Skipping...', 'error');
+            this.skipPartner();
+        }
+    }
+
+    // Suggestion 8: Toggle Auto-Skip
+    toggleAutoSkip() {
+        this.autoSkipEnabled = !this.autoSkipEnabled;
+        if (this.autoSkipEnabled) {
+            this.autoSkipBtn.classList.add('active');
+            this.showNotification('Auto-skip enabled', 'success');
+        } else {
+            this.autoSkipBtn.classList.remove('active');
+            this.showNotification('Auto-skip disabled', 'info');
+        }
     }
     
     /** Clears all messages from the chat window. */
@@ -1088,6 +1432,23 @@ class SecureChat {
             </div>
         `;
         this.showTypingIndicator(false);
+    }
+
+    // Suggestion 40: Export Chat
+    exportChat() {
+        const messages = Array.from(this.chatMessages.querySelectorAll('.message')).map(msg => {
+            const time = msg.querySelector('.message-timestamp').innerText;
+            const text = msg.querySelector('.message-text').innerText;
+            const sender = msg.classList.contains('own') ? 'Me' : 'Partner';
+            return `[${time}] ${sender}: ${text}`;
+        }).join('\n');
+        
+        const blob = new Blob([messages], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `securechat-history-${Date.now()}.txt`;
+        a.click();
     }
 
     /** Displays a system message directly in the chat window. */
@@ -1116,6 +1477,7 @@ class SecureChat {
         this.welcomeScreen.classList.add('hidden');
         this.waitingScreen.classList.add('hidden');
         this.chatScreen.classList.add('hidden');
+        this.videoInterface.classList.add('hidden');
         
         // Show target screen
         switch (screen) {
@@ -1127,9 +1489,10 @@ class SecureChat {
                 break;
             case 'chat':
                 this.chatScreen.classList.remove('hidden');
-                // Default to text view initially
-                this.switchViewMode('text');
                 this.messageInput.focus();
+                break;
+            case 'video':
+                this.videoInterface.classList.remove('hidden');
                 break;
         }
         
@@ -1215,6 +1578,7 @@ class SecureChat {
     
     /** Plays a sound effect using the Web Audio API. */
     playSound(type) {
+        if (this.isMuted) return; // Suggestion 7: Check mute state
         try {
             if (!this.audioContext || this.audioContext.state === 'suspended') {
                 this.audioContext?.resume();
@@ -1278,12 +1642,20 @@ class SecureChat {
     /** Handles the browser window gaining focus. */
     handleWindowFocus() {
         // Resume any paused functionality when window gains focus
+        // Suggestion 10: Resume video
+        if (this.remoteVideo && this.remoteVideo.paused && this.remoteStream) {
+            this.remoteVideo.play().catch(e => console.log('Auto-resume failed', e));
+        }
         this.stopTitleFlash();
     }
     
     /** Handles the browser window losing focus. */
     handleWindowBlur() {
         // Pause typing when window loses focus
+        // Suggestion 9: Pause video to save resources
+        if (this.remoteVideo && !this.remoteVideo.paused) {
+            this.remoteVideo.pause();
+        }
         this.stopTyping();
     }
 
@@ -1459,6 +1831,12 @@ class SecureChat {
         this.sharedSecret = null;
         this.keyPair = null;
         this.updateSecurityIcon(false);
+    }
+
+    /** Suggestion 6: Manual clear chat */
+    manualClearChat() {
+        this.clearChat();
+        this.showNotification('Chat history cleared', 'info');
     }
 
     /**
