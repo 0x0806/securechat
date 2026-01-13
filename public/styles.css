@@ -2,12 +2,12 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    /* Suggestion 13: Firefox scrollbar support */
     scrollbar-width: thin;
     scrollbar-color: var(--glass-border) transparent;
 }
 
 :root {
+    /* Premium Color Palette */
     --primary-bg: #0a0a0f;
     --secondary-bg: #1a1a2e;
     --accent-bg: #16213e;
@@ -23,49 +23,80 @@
     --gradient-accent: linear-gradient(135deg, #00d4ff 0%, #0066ff 100%);
     --shadow-primary: 0 8px 32px rgba(0, 0, 0, 0.3);
     --shadow-glass: 0 8px 32px rgba(31, 38, 135, 0.37);
+
+    /* Spacing System */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+
+    /* Border Radius */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --radius-full: 50px;
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #020617; /* Solid dark enterprise background */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    background: #020617;
     height: 100vh;
+    height: 100dvh;
+    /* Dynamic viewport height for mobile */
     color: var(--primary-text);
-    overflow-x: hidden;
-    overflow-y: hidden;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 /* Custom Scrollbar */
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
-::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--accent-color); }
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--glass-border);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-color);
+}
 
 .app-container {
     height: 100vh;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
 }
 
-/* Header Styles */
+/* ========== HEADER ========== */
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 2rem;
+    padding: clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 2rem);
     background: var(--glass-bg);
     backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     position: sticky;
     top: 0;
     z-index: 100;
+    min-height: 60px;
 }
 
 .logo {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 1.5rem;
-    font-weight: bold;
+    font-size: clamp(1.2rem, 3vw, 1.5rem);
+    font-weight: 700;
     background: var(--gradient-accent);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -76,7 +107,7 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.9rem;
+    font-size: clamp(0.8rem, 2vw, 0.9rem);
     color: var(--secondary-text);
 }
 
@@ -85,7 +116,6 @@ body {
     animation: pulse 2s infinite;
 }
 
-/* Suggestion 15: Sound Toggle Button */
 .sound-toggle-btn {
     background: transparent;
     border: none;
@@ -94,39 +124,44 @@ body {
     padding: 5px;
     margin-right: 10px;
     transition: color 0.3s ease;
+    font-size: 1.1rem;
 }
-.sound-toggle-btn:hover { color: var(--accent-color); }
 
-/* Main Content */
+.sound-toggle-btn:hover {
+    color: var(--accent-color);
+}
+
+/* ========== MAIN CONTENT ========== */
 .main-content {
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 1rem;
+    padding: var(--spacing-md);
     position: relative;
     overflow: hidden;
 }
 
-/* Welcome Screen */
+/* ========== WELCOME SCREEN ========== */
 .welcome-screen {
     text-align: center;
     max-width: 500px;
     width: 100%;
+    padding: var(--spacing-md);
 }
 
 .welcome-card {
     background: var(--glass-bg);
     backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
-    border-radius: 20px;
-    padding: 3rem 2rem;
+    border-radius: var(--radius-xl);
+    padding: clamp(2rem, 5vw, 3rem) clamp(1.5rem, 4vw, 2rem);
     box-shadow: var(--shadow-glass);
     animation: fadeInUp 0.8s ease-out, float 6s ease-in-out infinite;
 }
 
 .welcome-icon {
-    font-size: 4rem;
+    font-size: clamp(3rem, 8vw, 4rem);
     background: var(--gradient-accent);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -135,7 +170,7 @@ body {
 }
 
 .welcome-card h1 {
-    font-size: 2.5rem;
+    font-size: clamp(2rem, 5vw, 2.5rem);
     margin-bottom: 1rem;
     background: var(--gradient-primary);
     -webkit-background-clip: text;
@@ -146,7 +181,7 @@ body {
 .welcome-card p {
     color: var(--secondary-text);
     margin-bottom: 2rem;
-    font-size: 1.1rem;
+    font-size: clamp(1rem, 2.5vw, 1.1rem);
     line-height: 1.6;
 }
 
@@ -164,7 +199,7 @@ body {
     align-items: center;
     gap: 0.5rem;
     color: var(--secondary-text);
-    font-size: 0.9rem;
+    font-size: clamp(0.85rem, 2vw, 0.9rem);
 }
 
 .feature i {
@@ -183,7 +218,7 @@ body {
     align-items: center;
     gap: 0.8rem;
     color: var(--secondary-text);
-    font-size: 0.9rem;
+    font-size: clamp(0.85rem, 2vw, 0.9rem);
     cursor: pointer;
     user-select: none;
     position: relative;
@@ -207,12 +242,12 @@ body {
 }
 
 .start-video-btn {
-    background: var(--gradient-accent); /* Primary style for Video */
+    background: var(--gradient-accent);
     border: none;
-    border-radius: 50px;
-    padding: 1rem 2rem;
-    font-size: 1.1rem;
-    font-weight: bold;
+    border-radius: var(--radius-full);
+    padding: clamp(0.9rem, 2.5vw, 1rem) clamp(1.5rem, 4vw, 2rem);
+    font-size: clamp(1rem, 2.5vw, 1.1rem);
+    font-weight: 700;
     color: white;
     cursor: pointer;
     display: flex;
@@ -223,6 +258,8 @@ body {
     transition: all 0.3s ease;
     box-shadow: var(--shadow-primary);
     animation: glowPulse 2s infinite;
+    min-height: 48px;
+    /* Touch-friendly */
 }
 
 .start-video-btn:hover {
@@ -242,11 +279,11 @@ body {
 
 .start-chat-btn {
     background: transparent;
-    border: 2px solid var(--glass-border); /* Secondary style for Text */
-    border-radius: 50px;
-    padding: 1rem 2rem;
-    font-size: 1.1rem;
-    font-weight: bold;
+    border: 2px solid var(--glass-border);
+    border-radius: var(--radius-full);
+    padding: clamp(0.9rem, 2.5vw, 1rem) clamp(1.5rem, 4vw, 2rem);
+    font-size: clamp(1rem, 2.5vw, 1.1rem);
+    font-weight: 700;
     color: var(--primary-text);
     cursor: pointer;
     display: flex;
@@ -255,6 +292,7 @@ body {
     gap: 0.8rem;
     width: 100%;
     transition: all 0.3s ease;
+    min-height: 48px;
 }
 
 .start-chat-btn:hover {
@@ -263,19 +301,20 @@ body {
     transform: translateY(-2px);
 }
 
-/* Waiting Screen */
+/* ========== WAITING SCREEN ========== */
 .waiting-screen {
     text-align: center;
     max-width: 400px;
     width: 100%;
+    padding: var(--spacing-md);
 }
 
 .waiting-card {
     background: var(--glass-bg);
     backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
-    border-radius: 20px;
-    padding: 3rem 2rem;
+    border-radius: var(--radius-xl);
+    padding: clamp(2rem, 5vw, 3rem) clamp(1.5rem, 4vw, 2rem);
     box-shadow: var(--shadow-glass);
     animation: fadeInUp 0.8s ease-out;
 }
@@ -306,22 +345,25 @@ body {
 .waiting-card h2 {
     margin-bottom: 1rem;
     color: var(--primary-text);
+    font-size: clamp(1.5rem, 4vw, 1.8rem);
 }
 
 .waiting-card p {
     color: var(--secondary-text);
     margin-bottom: 2rem;
+    font-size: clamp(0.9rem, 2.5vw, 1rem);
 }
 
 .cancel-btn {
     background: transparent;
     border: 2px solid var(--danger-color);
-    border-radius: 50px;
+    border-radius: var(--radius-full);
     padding: 0.8rem 1.5rem;
     color: var(--danger-color);
     cursor: pointer;
-    font-weight: bold;
+    font-weight: 700;
     transition: all 0.3s ease;
+    min-height: 44px;
 }
 
 .cancel-btn:hover {
@@ -329,7 +371,7 @@ body {
     color: white;
 }
 
-/* Chat Screen */
+/* ========== CHAT SCREEN ========== */
 .chat-screen {
     width: 100%;
     max-width: 1000px;
@@ -338,13 +380,13 @@ body {
     background: rgba(30, 41, 59, 0.5);
     backdrop-filter: blur(40px);
     border: 1px solid var(--glass-border);
-    border-radius: 24px;
+    border-radius: var(--radius-xl);
     box-shadow: var(--shadow-glass);
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* Keep this to enforce border-radius on children */
+    overflow: hidden;
     animation: fadeInUp 0.8s ease-out;
-    position: relative; /* For stacking context of video container */
+    position: relative;
 }
 
 .text-interface {
@@ -358,9 +400,11 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 1.5rem;
+    padding: clamp(0.8rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
     border-bottom: 1px solid var(--glass-border);
     background: var(--accent-bg);
+    flex-wrap: wrap;
+    gap: 0.5rem;
 }
 
 .partner-info {
@@ -378,6 +422,7 @@ body {
     align-items: center;
     justify-content: center;
     color: white;
+    flex-shrink: 0;
 }
 
 .partner-details {
@@ -386,12 +431,13 @@ body {
 }
 
 .partner-name {
-    font-weight: bold;
+    font-weight: 700;
     color: var(--primary-text);
+    font-size: clamp(0.9rem, 2.5vw, 1rem);
 }
 
 .partner-status {
-    font-size: 0.8rem;
+    font-size: clamp(0.75rem, 2vw, 0.8rem);
     color: var(--success-color);
 }
 
@@ -402,8 +448,10 @@ body {
 }
 
 .control-btn {
-    width: 40px;
-    height: 40px;
+    width: clamp(36px, 8vw, 40px);
+    height: clamp(36px, 8vw, 40px);
+    min-width: 36px;
+    min-height: 36px;
     border: none;
     border-radius: 50%;
     background: var(--glass-bg);
@@ -426,7 +474,6 @@ body {
     background: var(--danger-color);
 }
 
-/* Suggestion 15: Clear Chat Button */
 .clear-chat-btn:hover {
     background: var(--warning-color);
 }
@@ -435,23 +482,21 @@ body {
     background: var(--success-color);
 }
 
-/* Suggestion 4: Report Button */
 .report-btn:hover {
     background: var(--danger-color);
     color: white;
 }
 
-/* Suggestion 8: Auto-Skip Button */
 .auto-skip-btn.active {
     background: var(--accent-color);
     color: white;
     animation: pulse 2s infinite;
 }
 
-/* Chat Messages */
+/* ========== CHAT MESSAGES ========== */
 .chat-messages {
     flex: 1;
-    padding: 1rem;
+    padding: var(--spacing-md);
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -479,8 +524,8 @@ body {
     border-radius: 18px;
     word-wrap: break-word;
     animation: messageSlideIn 0.3s ease-out;
-    /* Suggestion 13: Preserve whitespace */
     white-space: pre-wrap;
+    position: relative;
 }
 
 .message.own {
@@ -498,21 +543,18 @@ body {
     border: 1px solid var(--glass-border);
 }
 
-/* Suggestion 31: Link styles */
 .message-text a {
     color: var(--accent-color);
     text-decoration: underline;
 }
 
-/* Suggestion 32: Code styles */
 .message-text code {
-    background: rgba(0,0,0,0.3);
+    background: rgba(0, 0, 0, 0.3);
     padding: 2px 4px;
     border-radius: 4px;
     font-family: monospace;
 }
 
-/* Suggestion 7: Scroll to Bottom Button */
 .scroll-bottom-btn {
     position: absolute;
     bottom: 80px;
@@ -524,29 +566,44 @@ body {
     color: white;
     border: none;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 10;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
 }
-.scroll-bottom-btn:hover { transform: translateY(-2px); }
 
-/* Suggestion 14: Hide copy button until hover */
+.scroll-bottom-btn:hover {
+    transform: translateY(-2px);
+}
+
 .copy-message-btn {
     opacity: 0;
     transition: opacity 0.2s ease;
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    border-radius: 4px;
+    color: white;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
 }
-.message:hover .copy-message-btn { opacity: 1; }
+
+.message:hover .copy-message-btn {
+    opacity: 1;
+}
 
 .system-message {
     align-self: center;
     background: var(--glass-bg);
     color: var(--secondary-text);
     padding: 0.5rem 1rem;
-    border-radius: 12px;
-    font-size: 0.9rem;
+    border-radius: var(--radius-md);
+    font-size: clamp(0.85rem, 2vw, 0.9rem);
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -558,6 +615,7 @@ body {
     opacity: 0.7;
     margin-top: 0.3rem;
 }
+
 .message-lock-icon {
     font-size: 0.6rem;
     margin-right: 5px;
@@ -566,18 +624,19 @@ body {
     vertical-align: middle;
 }
 
-/* Video Interface (Standalone) */
+/* ========== VIDEO INTERFACE (STANDALONE) ========== */
 .video-interface {
-    position: fixed; /* Fixed to cover entire viewport including header */
+    position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
+    width: 100dvw;
     height: 100vh;
-    height: 100dvh; /* Dynamic viewport height for mobile browsers */
+    height: 100dvh;
     background: #000;
     display: flex;
     flex-direction: column;
-    z-index: 2000; /* High z-index to sit on top of everything */
+    z-index: 2000;
 }
 
 .video-wrapper {
@@ -596,31 +655,32 @@ body {
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0,0,0,0.6);
+    background: rgba(0, 0, 0, 0.6);
     padding: 5px 15px;
     border-radius: 20px;
     color: white;
     font-family: monospace;
     z-index: 80;
+    font-size: clamp(0.9rem, 2.5vw, 1rem);
 }
 
 #localVideo {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transform: scaleX(-1); /* Mirror effect */
+    transform: scaleX(-1);
 }
 
 .local-video-wrapper {
     position: absolute;
-    bottom: 100px;
-    right: 20px;
-    width: 160px;
-    height: 210px;
-    border-radius: 12px;
+    bottom: clamp(90px, 15vh, 120px);
+    right: clamp(15px, 3vw, 20px);
+    width: clamp(120px, 20vw, 160px);
+    height: clamp(160px, 26vw, 210px);
+    border-radius: var(--radius-md);
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    border: 2px solid rgba(255,255,255,0.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.1);
     z-index: 60;
     background: #1e293b;
 }
@@ -641,16 +701,16 @@ body {
 
 .video-controls {
     position: absolute;
-    bottom: 30px;
+    bottom: clamp(20px, 4vh, 30px);
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    gap: 1.5rem;
+    gap: clamp(0.5rem, 2vw, 1.5rem);
     z-index: 70;
-    padding: 1rem 2rem;
-    background: rgba(0,0,0,0.5);
+    padding: clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 2rem);
+    background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(10px);
-    border-radius: 50px;
+    border-radius: var(--radius-full);
     flex-wrap: wrap;
     justify-content: center;
     width: 90%;
@@ -658,18 +718,20 @@ body {
 }
 
 .video-control-btn {
-    width: 56px;
-    height: 56px;
+    width: clamp(48px, 10vw, 56px);
+    height: clamp(48px, 10vw, 56px);
+    min-width: 44px;
+    min-height: 44px;
     border: none;
     border-radius: 50%;
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.1);
     color: white;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
-    font-size: 1.2rem;
+    font-size: clamp(1rem, 2.5vw, 1.2rem);
 }
 
 .video-control-btn:hover {
@@ -696,14 +758,14 @@ body {
     color: white;
 }
 
-/* Typing Indicator */
+/* ========== TYPING INDICATOR ========== */
 .typing-indicator {
     padding: 0.5rem 1rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
     color: var(--secondary-text);
-    font-size: 0.9rem;
+    font-size: clamp(0.85rem, 2vw, 0.9rem);
     animation: fadeIn 0.3s ease;
 }
 
@@ -728,9 +790,9 @@ body {
     animation-delay: 0.4s;
 }
 
-/* Message Input */
+/* ========== MESSAGE INPUT ========== */
 .message-input-container {
-    padding: 1rem 1.5rem;
+    padding: clamp(0.8rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
     border-top: 1px solid var(--glass-border);
     background: rgba(15, 23, 42, 0.4);
 }
@@ -742,7 +804,7 @@ body {
     position: relative;
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
-    border-radius: 24px;
+    border-radius: var(--radius-xl);
     padding: 0.25rem 0.5rem;
     transition: border-color 0.2s;
 }
@@ -758,8 +820,9 @@ body {
     border: none;
     padding: 0.6rem;
     color: var(--primary-text);
-    font-size: 1rem;
+    font-size: clamp(0.9rem, 2.5vw, 1rem);
     outline: none;
+    min-height: 40px;
 }
 
 #messageInput::placeholder {
@@ -769,8 +832,10 @@ body {
 .send-btn {
     width: 45px;
     height: 45px;
+    min-width: 40px;
+    min-height: 40px;
     border: none;
-    border-radius: 50%;    
+    border-radius: 50%;
     background: var(--accent-color);
     color: white;
     cursor: pointer;
@@ -806,7 +871,7 @@ body {
     left: 0;
     background: var(--secondary-bg);
     border: 1px solid var(--glass-border);
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     padding: 0.5rem;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -829,23 +894,24 @@ body {
     background: var(--glass-bg);
 }
 
-/* Notifications */
+/* ========== NOTIFICATIONS ========== */
 .notification-container {
     position: fixed;
-    top: 20px;
+    bottom: 20px;
     right: 20px;
-    z-index: 1000;
+    z-index: 3000;
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    max-width: 90vw;
 }
 
 .notification {
     background: var(--glass-bg);
     backdrop-filter: blur(12px);
     border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    padding: 1rem 1.5rem;
+    border-radius: var(--radius-md);
+    padding: clamp(0.8rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
     color: var(--primary-text);
     box-shadow: var(--shadow-primary);
     animation: slideInRight 0.3s ease-out;
@@ -853,10 +919,13 @@ body {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    font-size: clamp(0.85rem, 2vw, 0.95rem);
 }
+
 .notification.info {
     border-left: 4px solid var(--accent-color);
 }
+
 .notification.success {
     border-left: 4px solid var(--success-color);
 }
@@ -869,7 +938,7 @@ body {
     border-left: 4px solid var(--danger-color);
 }
 
-/* Modal */
+/* ========== MODAL ========== */
 .modal {
     position: fixed;
     top: 0;
@@ -881,18 +950,19 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: 4000;
     animation: fadeIn 0.3s ease;
+    padding: var(--spacing-md);
 }
 
 .modal-content {
     background: var(--glass-bg);
     backdrop-filter: blur(16px);
     border: 1px solid var(--glass-border);
-    border-radius: 20px;
-    padding: 2rem;
+    border-radius: var(--radius-xl);
+    padding: clamp(1.5rem, 4vw, 2rem);
     max-width: 400px;
-    width: 90%;
+    width: 100%;
     text-align: center;
     box-shadow: var(--shadow-glass);
     animation: scaleIn 0.3s ease;
@@ -907,37 +977,42 @@ body {
 }
 
 .modal-header i {
-    font-size: 3rem;
+    font-size: clamp(2.5rem, 6vw, 3rem);
     color: var(--accent-color);
 }
 
 .modal-header h3 {
     color: var(--primary-text);
     margin: 0;
+    font-size: clamp(1.2rem, 3vw, 1.5rem);
 }
 
 .modal p {
     color: var(--secondary-text);
     margin-bottom: 2rem;
     line-height: 1.6;
+    font-size: clamp(0.9rem, 2.5vw, 1rem);
 }
 
 .modal-actions {
     display: flex;
     gap: 1rem;
     justify-content: center;
+    flex-wrap: wrap;
 }
 
 .modal-btn {
     padding: 0.8rem 1.5rem;
     border: none;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    min-height: 44px;
+    font-size: clamp(0.9rem, 2.5vw, 1rem);
 }
 
 .decline-btn {
@@ -960,7 +1035,7 @@ body {
     box-shadow: 0 0 10px var(--accent-color);
 }
 
-/* Utility Classes */
+/* ========== UTILITY CLASSES ========== */
 .hidden {
     display: none !important;
 }
@@ -973,15 +1048,25 @@ body {
     animation: fadeOut 0.5s ease;
 }
 
-/* Animations */
+/* ========== ANIMATIONS ========== */
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes fadeOut {
-    from { opacity: 1; }
-    to { opacity: 0; }
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
 }
 
 @keyframes fadeInUp {
@@ -989,6 +1074,7 @@ body {
         opacity: 0;
         transform: translateY(30px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -1000,6 +1086,7 @@ body {
         opacity: 0;
         transform: translateX(100%);
     }
+
     to {
         opacity: 1;
         transform: translateX(0);
@@ -1011,6 +1098,7 @@ body {
         opacity: 0;
         transform: scale(0.9);
     }
+
     to {
         opacity: 1;
         transform: scale(1);
@@ -1022,35 +1110,94 @@ body {
         opacity: 0;
         transform: translateY(10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
     }
 }
 
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+@keyframes radarSpin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
 }
 
 @keyframes typingPulse {
-    0%, 80%, 100% { transform: scale(0); }
-    40% { transform: scale(1); }
+
+    0%,
+    80%,
+    100% {
+        transform: scale(0);
+    }
+
+    40% {
+        transform: scale(1);
+    }
 }
 
-/* Responsive Design */
+@keyframes glowPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 8px 32px rgba(0, 212, 255, 0.3);
+    }
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* ========== RESPONSIVE DESIGN ========== */
+
+/* Tablet (768px - 1023px) */
+@media (max-width: 1023px) and (min-width: 768px) {
+    .chat-screen {
+        max-width: 95%;
+    }
+
+    .video-controls {
+        gap: 1rem;
+    }
+}
+
+/* Mobile & Tablet (max-width: 768px) */
 @media (max-width: 768px) {
     .header {
         padding: 0.8rem 1rem;
+        min-height: 56px;
     }
 
     .main-content {
-        padding: 0; /* Allow chat screen to be full-width */
+        padding: 0;
         height: 100%;
     }
 
@@ -1065,7 +1212,7 @@ body {
     .local-video-wrapper {
         width: 100px;
         height: 140px;
-        bottom: 100px;
+        bottom: 90px;
         right: 15px;
     }
 
@@ -1088,8 +1235,8 @@ body {
     }
 
     .control-btn {
-        width: 35px;
-        height: 35px;
+        width: 36px;
+        height: 36px;
     }
 
     .message {
@@ -1097,16 +1244,16 @@ body {
     }
 
     .video-controls {
-        bottom: 20px;
-        width: 90%;
+        bottom: 15px;
+        width: 95%;
         justify-content: space-around;
-        gap: 10px;
+        gap: 8px;
         padding: 10px;
         border-radius: 20px;
     }
 
     .notification-container {
-        top: 10px;
+        bottom: 10px;
         right: 10px;
         left: 10px;
     }
@@ -1114,10 +1261,10 @@ body {
     .notification {
         max-width: none;
     }
-    
+
     .video-control-btn {
-        width: 45px;
-        height: 45px;
+        width: 48px;
+        height: 48px;
         font-size: 1rem;
     }
 
@@ -1128,6 +1275,7 @@ body {
 
     .modal-actions {
         flex-direction: column;
+        width: 100%;
     }
 
     .modal-btn {
@@ -1136,6 +1284,7 @@ body {
     }
 }
 
+/* Small Mobile (max-width: 480px) */
 @media (max-width: 480px) {
     .logo {
         font-size: 1.1rem;
@@ -1143,7 +1292,6 @@ body {
 
     .status-indicator {
         font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
     }
 
     .welcome-icon {
@@ -1154,7 +1302,8 @@ body {
         font-size: 1.8rem;
     }
 
-    .start-chat-btn {
+    .start-chat-btn,
+    .start-video-btn {
         padding: 0.8rem 1.5rem;
         font-size: 1rem;
     }
@@ -1172,9 +1321,21 @@ body {
         width: 40px;
         height: 40px;
     }
+
+    .video-control-btn {
+        width: 44px;
+        height: 44px;
+    }
+
+    .local-video-wrapper {
+        width: 80px;
+        height: 110px;
+        bottom: 80px;
+        right: 10px;
+    }
 }
 
-/* iOS Safari specific optimizations */
+/* ========== iOS SAFARI OPTIMIZATIONS ========== */
 @supports (-webkit-touch-callout: none) {
     .app-container {
         min-height: -webkit-fill-available;
@@ -1185,11 +1346,23 @@ body {
     }
 
     #messageInput {
-        font-size: 16px; /* Prevents zoom on iOS */
+        font-size: 16px;
+        /* Prevents zoom on iOS */
+    }
+
+    /* Fix for iOS notch */
+    .header {
+        padding-top: max(env(safe-area-inset-top), 1rem);
+        padding-left: max(env(safe-area-inset-left), 1rem);
+        padding-right: max(env(safe-area-inset-right), 1rem);
+    }
+
+    .video-controls {
+        padding-bottom: max(env(safe-area-inset-bottom), 1rem);
     }
 }
 
-/* Accessibility */
+/* ========== ACCESSIBILITY ========== */
 @media (prefers-reduced-motion: reduce) {
     * {
         animation-duration: 0.01ms !important;
@@ -1199,8 +1372,8 @@ body {
 }
 
 /* Focus styles for keyboard navigation */
-button:focus,
-input:focus {
+button:focus-visible,
+input:focus-visible {
     outline: 2px solid var(--accent-color);
     outline-offset: 2px;
 }
@@ -1212,4 +1385,561 @@ input:focus {
         --glass-border: rgba(255, 255, 255, 0.3);
         --secondary-text: #cccccc;
     }
+}
+
+/* Dark mode support (already dark by default) */
+@media (prefers-color-scheme: dark) {
+    /* Already optimized for dark mode */
+}
+
+/* ========== LANDSCAPE MOBILE OPTIMIZATIONS ========== */
+@media (max-height: 500px) and (orientation: landscape) {
+    .welcome-card {
+        padding: 1.5rem 1rem;
+    }
+
+    .welcome-card h1 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .welcome-card p {
+        margin-bottom: 1rem;
+    }
+
+    .features {
+        margin-bottom: 1rem;
+    }
+
+    .buttons-container {
+        gap: 0.5rem;
+    }
+
+    .chat-header {
+        padding: 0.5rem 1rem;
+    }
+
+    .local-video-wrapper {
+        width: 80px;
+        height: 100px;
+        bottom: 70px;
+    }
+
+    .video-controls {
+        bottom: 10px;
+        padding: 0.5rem 1rem;
+    }
+}
+
+/* ========================================
+   PRIVACY ENHANCEMENTS CSS
+   Add this to styles.css or include as separate file
+   ======================================== */
+
+/* #4, #7, #10: Privacy Banner */
+.privacy-banner {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 0.75rem 1rem;
+    z-index: 999;
+    animation: slideDown 0.5s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.privacy-banner-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: white;
+}
+
+.privacy-banner-content i {
+    font-size: 1.5rem;
+    color: #00ff88;
+}
+
+.privacy-text {
+    flex: 1;
+}
+
+.privacy-text strong {
+    display: block;
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+.privacy-text p {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    margin: 0;
+}
+
+.privacy-banner-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.privacy-banner-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+/* #5: Encryption Indicator */
+.encryption-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(0, 255, 136, 0.1);
+    border: 1px solid rgba(0, 255, 136, 0.3);
+    border-radius: 20px;
+    color: #00ff88;
+    font-size: 0.85rem;
+    font-weight: 600;
+    animation: pulse 2s infinite;
+}
+
+.encryption-indicator i {
+    font-size: 1rem;
+}
+
+.encryption-indicator.active {
+    animation: glowPulse 2s infinite;
+}
+
+/* #13: Privacy Tips Modal */
+.privacy-modal .modal-content {
+    max-width: 500px;
+}
+
+.privacy-tips-content {
+    text-align: left;
+}
+
+.privacy-tips-list {
+    margin: 1.5rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.privacy-tip {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    transition: all 0.3s ease;
+}
+
+.privacy-tip:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(5px);
+}
+
+.privacy-tip i {
+    font-size: 1.5rem;
+    color: var(--accent-color);
+    min-width: 24px;
+}
+
+.privacy-tip span {
+    color: var(--primary-text);
+    font-size: 0.95rem;
+}
+
+/* #9: Incognito Notice */
+.incognito-notice {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--warning-color);
+    border-left: 4px solid var(--warning-color);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.5rem;
+    color: var(--primary-text);
+    box-shadow: var(--shadow-primary);
+    animation: slideInRight 0.3s ease-out;
+    max-width: 350px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.incognito-notice i {
+    font-size: 1.5rem;
+    color: var(--warning-color);
+}
+
+.incognito-notice span {
+    flex: 1;
+    font-size: 0.9rem;
+}
+
+.incognito-notice button {
+    background: transparent;
+    border: none;
+    color: var(--secondary-text);
+    cursor: pointer;
+    padding: 0.25rem;
+    transition: color 0.3s ease;
+}
+
+.incognito-notice button:hover {
+    color: var(--primary-text);
+}
+
+/* #15: Connection Security Status */
+.connection-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+}
+
+.connection-status[data-security="high"] {
+    border-color: var(--success-color);
+    color: var(--success-color);
+}
+
+.connection-status[data-security="medium"] {
+    border-color: var(--warning-color);
+    color: var(--warning-color);
+}
+
+.connection-status[data-security="low"] {
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+}
+
+.connection-status i {
+    font-size: 0.9rem;
+}
+
+/* Privacy Badge in Header */
+.privacy-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.8rem;
+    background: rgba(0, 255, 136, 0.1);
+    border: 1px solid rgba(0, 255, 136, 0.3);
+    border-radius: 20px;
+    color: #00ff88;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.privacy-badge i {
+    font-size: 0.9rem;
+}
+
+/* Screenshot Warning Toast */
+.screenshot-warning {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 71, 87, 0.95);
+    color: white;
+    padding: 1.5rem 2rem;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 10px 40px rgba(255, 71, 87, 0.5);
+    z-index: 9999;
+    animation: scaleIn 0.3s ease;
+    text-align: center;
+    max-width: 300px;
+}
+
+.screenshot-warning i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.screenshot-warning p {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+/* Data Retention Policy Notice */
+.data-retention-notice {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    margin: 1rem 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.data-retention-notice i {
+    color: var(--accent-color);
+    font-size: 1.5rem;
+    margin-top: 0.25rem;
+}
+
+.data-retention-notice .content {
+    flex: 1;
+}
+
+.data-retention-notice .content h4 {
+    color: var(--primary-text);
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+}
+
+.data-retention-notice .content p {
+    color: var(--secondary-text);
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+/* No Cookies Badge */
+.no-cookies-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.7rem;
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 15px;
+    color: var(--accent-color);
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+/* Animations */
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .privacy-banner {
+        top: 56px;
+        padding: 0.6rem 0.8rem;
+    }
+
+    .privacy-banner-content {
+        flex-wrap: wrap;
+    }
+
+    .privacy-text strong {
+        font-size: 0.9rem;
+    }
+
+    .privacy-text p {
+        font-size: 0.75rem;
+    }
+
+    .encryption-indicator {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.75rem;
+    }
+
+    .privacy-tips-list {
+        gap: 0.75rem;
+    }
+
+    .privacy-tip {
+        padding: 0.6rem;
+    }
+
+    .privacy-tip i {
+        font-size: 1.2rem;
+    }
+
+    .privacy-tip span {
+        font-size: 0.85rem;
+    }
+
+    .incognito-notice {
+        max-width: none;
+        margin: 0 0 1rem 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .privacy-banner-content i {
+        display: none;
+    }
+
+    .privacy-text strong {
+        font-size: 0.85rem;
+    }
+
+    .privacy-text p {
+        font-size: 0.7rem;
+    }
+
+    .encryption-indicator {
+        font-size: 0.7rem;
+        padding: 0.3rem 0.6rem;
+    }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    .privacy-banner {
+        border-bottom: 2px solid white;
+    }
+
+    .encryption-indicator {
+        border-width: 2px;
+    }
+
+    .privacy-tip {
+        border-width: 2px;
+    }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+
+    .privacy-banner,
+    .encryption-indicator,
+    .screenshot-warning {
+        animation: none;
+    }
+
+    .privacy-tip:hover {
+        transform: none;
+    }
+}
+
+/* NSFW Warning Modal */
+.nsfw-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    /* Darker dim */
+    backdrop-filter: blur(15px);
+    /* Strong blur effect */
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.nsfw-modal-content {
+    background: var(--glass-bg);
+    border: 1px solid var(--danger-color);
+    box-shadow: 0 0 50px rgba(255, 71, 87, 0.3);
+    padding: 2.5rem;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    border-radius: var(--radius-lg);
+    animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.nsfw-icon {
+    font-size: 4rem;
+    color: var(--danger-color);
+    margin-bottom: 1.5rem;
+    animation: pulse 2s infinite;
+}
+
+.nsfw-modal-content h2 {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    color: var(--primary-text);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.nsfw-modal-content p {
+    color: var(--secondary-text);
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+    font-size: 1rem;
+}
+
+.nsfw-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.nsfw-btn-agree {
+    background: var(--danger-color);
+    color: white;
+    border: none;
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.nsfw-btn-agree:hover {
+    background: #ff2e3f;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(255, 71, 87, 0.4);
+}
+
+.nsfw-btn-exit {
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--secondary-text);
+    padding: 0.8rem;
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.nsfw-btn-exit:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--primary-text);
+}
+
+.age-warning {
+    font-size: 0.8rem;
+    color: var(--secondary-text);
+    margin-top: 1rem;
+    opacity: 0.7;
 }
