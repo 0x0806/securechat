@@ -88,8 +88,8 @@ class SecureChat {
         // Buttons
         this.startChatBtn = document.getElementById('startChatBtn');
         this.startVideoChatBtn = document.getElementById('startVideoChatBtn');
-        this.termsCheckbox = document.getElementById('termsCheckbox');
-        this.termsCheckbox.setAttribute('aria-label', 'Accept terms and conditions');
+        this.startVideoChatBtn = document.getElementById('startVideoChatBtn');
+
 
         this.cancelWaitBtn = document.getElementById('cancelWaitBtn');
         this.sendBtn = document.getElementById('sendBtn');
@@ -179,11 +179,7 @@ class SecureChat {
             this.startChat();
         });
 
-        this.termsCheckbox.addEventListener('change', () => {
-            const isChecked = this.termsCheckbox.checked;
-            this.startChatBtn.disabled = !isChecked;
-            this.startVideoChatBtn.disabled = !isChecked;
-        });
+
         this.cancelWaitBtn.addEventListener('click', () => this.cancelWait());
         this.sendBtn.addEventListener('click', () => this.sendMessage());
         this.skipBtn.addEventListener('click', () => this.skipPartner());
@@ -306,7 +302,7 @@ class SecureChat {
             } else {
                 this.showScreen('chat');
             }
-            this.showNotification('Partner found! Start chatting', 'success');
+            this.showNotification('Partner connected', 'success');
             this.playSound('found');
             this.updatePartnerStatus('Online');
             this.initEncryption();
@@ -444,7 +440,7 @@ class SecureChat {
                 // Force play to ensure video displays (especially on mobile)
                 this.remoteVideo.play().then(() => {
                     console.log('Remote video playing successfully');
-                    this.showNotification('Video connected!', 'success');
+                    this.showNotification('Partner connected', 'success');
                 }).catch(err => {
                     console.error('Remote video autoplay failed:', err);
                     // Try again after user interaction
@@ -463,7 +459,7 @@ class SecureChat {
             console.log('PeerConnection state:', this.peerConnection.connectionState);
             switch (this.peerConnection.connectionState) {
                 case 'connected':
-                    this.showNotification('Video call connected', 'success');
+                    this.showNotification('Partner connected', 'success');
                     this.iceRestartCount = 0; // Suggestion 12: Reset counter
                     break;
                 case 'disconnected':
@@ -476,7 +472,7 @@ class SecureChat {
                 case 'closed':
                     if (this.isInCall) {
                         this.endCall();
-                        this.showNotification('Video call disconnected - Back to text chat', 'warning');
+                        this.showNotification('Partner disconnected', 'warning');
                     }
                     break;
             }
@@ -574,10 +570,7 @@ class SecureChat {
 
     /** Starts the process of finding a partner. */
     startChat() {
-        if (!this.termsCheckbox.checked) {
-            this.showNotification('Please accept the terms first', 'warning');
-            return;
-        }
+
 
         this.showScreen('waiting');
 
@@ -639,7 +632,8 @@ class SecureChat {
         this.endCall({ stopLocalStream: false, keepUI: true });
         this.clearChat();
         this.showScreen('waiting');
-        this.showNotification('Finding a new partner...', 'info');
+        this.showScreen('waiting');
+        // Notification removed per user request (Redundant with screen)
         this.startChat();
 
         // Suggestion 12: Auto-focus input
@@ -652,7 +646,7 @@ class SecureChat {
     handlePartnerDisconnect() {
         if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
 
-        this.showNotification('Partner disconnected. Searching for new partner...', 'info');
+        this.showNotification('Partner disconnected', 'info');
         this.playSound('message');
 
         this.resetEncryption();
