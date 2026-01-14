@@ -667,8 +667,9 @@ body {
 #localVideo {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     transform: scaleX(-1);
+    background: #000;
 }
 
 .local-video-wrapper {
@@ -685,17 +686,12 @@ body {
     background: #1e293b;
 }
 
-.audio-visualizer {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-}
+
 
 #remoteVideo {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     background: #0f172a;
 }
 
