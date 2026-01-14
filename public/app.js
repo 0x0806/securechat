@@ -32,7 +32,7 @@ class SecureChat {
         this.titleInterval = null;
         this.keyPair = null;
         this.sharedSecret = null;
-        this.audioContext = null;
+        this.sharedSecret = null;
         this.reconnectTimer = null;
         this.isMuted = localStorage.getItem('securechat_muted') === 'true'; // Suggestion 8: Persist mute
         this.iceRestartCount = 0; // Suggestion 8: Limit ICE restarts
@@ -743,7 +743,6 @@ class SecureChat {
 
             this.toggleVideoBtn.style.display = 'flex';
             this.toggleAudioBtn.style.display = 'flex';
-            this.setupVisualizer();
 
             // Store stream reference globally to prevent re-requesting
             console.log('Local video started successfully, stream stored');
@@ -1191,39 +1190,7 @@ class SecureChat {
         }
     }
 
-    // Suggestion 37: Audio Visualizer
-    setupVisualizer() {
-        if (!this.audioContext || !this.localStream) return;
-        const source = this.audioContext.createMediaStreamSource(this.localStream);
-        const analyser = this.audioContext.createAnalyser();
-        analyser.fftSize = 64;
-        source.connect(analyser);
 
-        const canvas = document.createElement('canvas');
-        canvas.className = 'audio-visualizer';
-        canvas.width = 50;
-        canvas.height = 30;
-        // Append to local video wrapper if not exists
-        const wrapper = document.querySelector('.local-video-wrapper');
-        if (wrapper && !wrapper.querySelector('.audio-visualizer')) {
-            wrapper.appendChild(canvas);
-        }
-
-        const ctx = canvas.getContext('2d');
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-
-        const draw = () => {
-            if (!this.localStream) return;
-            requestAnimationFrame(draw);
-            analyser.getByteFrequencyData(dataArray);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const barHeight = (dataArray[10] / 255) * canvas.height; // Simple visualization
-            ctx.fillStyle = '#00d4ff';
-            ctx.fillRect(0, canvas.height - barHeight, canvas.width, barHeight);
-        };
-        draw();
-    }
 
     // Suggestion 11: Switch Camera
     async switchCamera() {
