@@ -648,44 +648,47 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: clamp(10px, 2vw, 20px);
-    gap: 20px;
-    background: #000;
+    padding: clamp(10px, 3vw, 40px);
+    gap: 24px;
+    background: radial-gradient(circle at 50% -20%, #1e293b 0%, #000 100%);
+    overflow: hidden;
 }
 
-/* Primary Video Container (Remote) */
+/* Enterprise Primary Video Container (Remote Feed) */
 .remote-video-wrapper.video-card {
-    width: 100%;
-    max-width: 1100px;
-    /* Primary large-viewer focus */
-    flex-grow: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 90%;
+    /* Mobile first default */
+    max-width: 1400px;
+    flex: 0 1 auto;
+    z-index: 10;
 }
 
-/* Secondary Video Container (Local) */
+/* Secondary User Container (Local Feed) */
 .local-video-wrapper.video-card {
-    width: clamp(120px, 25vw, 220px);
-    /* Smaller secondary feed */
+    width: clamp(140px, 20vw, 280px);
+    /* Coordinated scale */
     align-self: flex-end;
-    position: relative;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    margin-right: clamp(0px, 5vw, 100px);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    z-index: 20;
 }
 
+/* Shared Enterprise Video Component Strategy */
 .video-card {
     width: 100%;
     position: relative;
     height: 0;
     padding-top: 56.25%;
-    /* Enforced 16:9 Aspect Ratio */
-    background: #1e293b;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--radius-md);
+    /* Industrial 16:9 Aspect Ratio Fallback */
+    background: #0f172a;
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     overflow: hidden;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Fallback for modern browsers */
+/* Modern Browser Aspect Ratio Architecture */
 @supports (aspect-ratio: 16 / 9) {
     .video-card {
         height: auto;
@@ -696,28 +699,63 @@ body {
 
 .video-card video {
     position: absolute;
-    top: 0;
-    left: 0;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     width: 100%;
     height: 100%;
     object-fit: contain;
-    /* Guarantee zero cropping, preserves full source feed */
+    /* Professional Zero-Crop Standard */
     background: #000;
+}
+
+/* Breakpoint-Specific Dominant Layout Rules */
+@media (min-width: 1024px) {
+    .video-wrapper {
+        padding: 40px;
+        gap: 30px;
+    }
+
+    .remote-video-wrapper.video-card {
+        width: 75%;
+        /* Dominant Desktop Width (70-80% Range) */
+    }
+
+    .local-video-wrapper.video-card {
+        width: 18%;
+        /* Symmetrical Scaling */
+        position: absolute;
+        bottom: 120px;
+        right: 40px;
+        margin: 0;
+    }
+}
+
+@media (max-width: 1023px) and (orientation: portrait) {
+    .remote-video-wrapper.video-card {
+        width: 95%;
+        max-height: 85vh;
+        /* Dominant Mobile Height (80-90% Range) */
+    }
 }
 
 .call-timer {
     position: absolute;
-    top: 20px;
+    top: clamp(15px, 4vh, 30px);
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.6);
-    padding: 8px 16px;
-    border-radius: 30px;
-    color: #fff;
-    font-family: 'Inter', monospace;
+    background: rgba(15, 23, 42, 0.8);
+    padding: 10px 24px;
+    border-radius: 50px;
+    color: var(--accent-color);
+    font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
     z-index: 100;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 /* #localVideo and #remoteVideo styles are now handled by .video-card video generic rule to ensure parity */
