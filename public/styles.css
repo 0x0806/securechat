@@ -644,30 +644,54 @@ body {
     position: relative;
     width: 100%;
     height: 100%;
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(10px, 2vw, 20px);
+    gap: 20px;
+    background: #000;
+}
+
+/* Primary Video Container (Remote) */
+.remote-video-wrapper.video-card {
+    width: 100%;
+    max-width: 1100px;
+    /* Primary large-viewer focus */
+    flex-grow: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-wrap: wrap;
-    /* Allow wrapping for mobile */
-    gap: 20px;
-    padding: 20px;
+}
+
+/* Secondary Video Container (Local) */
+.local-video-wrapper.video-card {
+    width: clamp(120px, 25vw, 220px);
+    /* Smaller secondary feed */
+    align-self: flex-end;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
 }
 
 .video-card {
     width: 100%;
-    max-width: 600px;
-    /* Standardize max width for enterprise view */
+    position: relative;
     height: 0;
     padding-top: 56.25%;
-    /* Strict 16:9 Aspect Ratio (9 / 16 = 0.5625) */
-    position: relative;
-    z-index: 10;
+    /* Enforced 16:9 Aspect Ratio */
     background: #1e293b;
     border: 2px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--radius-md);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     overflow: hidden;
+}
+
+/* Fallback for modern browsers */
+@supports (aspect-ratio: 16 / 9) {
+    .video-card {
+        height: auto;
+        padding-top: 0;
+        aspect-ratio: 16 / 9;
+    }
 }
 
 .video-card video {
@@ -681,20 +705,19 @@ body {
     background: #000;
 }
 
-
-
 .call-timer {
     position: absolute;
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.6);
-    padding: 5px 15px;
-    border-radius: 20px;
-    color: white;
-    font-family: monospace;
-    z-index: 80;
-    font-size: clamp(0.9rem, 2.5vw, 1rem);
+    padding: 8px 16px;
+    border-radius: 30px;
+    color: #fff;
+    font-family: 'Inter', monospace;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* #localVideo and #remoteVideo styles are now handled by .video-card video generic rule to ensure parity */
