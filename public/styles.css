@@ -688,24 +688,13 @@ body {
     font-size: clamp(0.9rem, 2.5vw, 1rem);
 }
 
-#localVideo {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    transform: scaleX(-1);
-    background: #000;
-}
+/* #localVideo and #remoteVideo styles are now handled by .video-card video generic rule to ensure parity */
 
 /* Removed absolute local video wrapper to make it symmetrical */
 
 
 
-#remoteVideo {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    background: #000;
-}
+
 
 .video-controls {
     position: absolute;
