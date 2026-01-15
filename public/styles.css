@@ -675,21 +675,23 @@ body {
     z-index: 20;
 }
 
-/* Standardized 16:9 Video Component Architecture */
+/* Foolproof Enterprise Containment Strategy */
 .video-card {
     width: 100%;
     position: relative;
     height: 0;
     padding-top: 56.25%;
     /* Industrial 16:9 Aspect Ratio Fallback */
-    background: #0f172a;
+    background: #000;
     border-radius: var(--radius-lg);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     overflow: hidden;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Absolute data containment */
+    box-sizing: border-box;
+    transition: all 0.4s ease;
 }
 
-/* Modern Browser Aspect Ratio Architecture */
+/* Modern Browser Aspect Ratio Framework */
 @supports (aspect-ratio: 16 / 9) {
     .video-card {
         height: auto;
@@ -705,9 +707,14 @@ body {
     transform: translate(-50%, -50%);
     width: 100%;
     height: 100%;
+    max-width: 100%;
+    /* Absolute containment within parent bounds */
+    max-height: 100%;
+    /* Absolute containment within parent bounds */
     object-fit: contain;
-    /* Professional Zero-Crop Deployment */
+    /* Professional Zero-Crop Deployment: Zero data loss */
     background: #000;
+    display: block;
 }
 
 /* Breakpoint-Specific Dominant Scaling Rules (CSS Grid Optimization) */
