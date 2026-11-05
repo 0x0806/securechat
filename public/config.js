@@ -11,7 +11,7 @@
  */
 window.SECURECHAT_CONFIG = {
   transport: 'auto',
-  namespace: 'securechat-0x0806/v1',
+  namespace: 'securechat-0x0806/v2',
   brokers: [
     'wss://broker.hivemq.com:8884/mqtt',
     'wss://broker.emqx.io:8084/mqtt'

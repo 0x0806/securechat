@@ -1,13 +1,14 @@
 {
   "name": "securechat",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Secure, Anonymous, Real-time Communication Platform",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "node --test tests/server.test.js",
+    "test": "node --test tests/server.test.js tests/matching.test.js",
     "test:e2e": "node tests/e2e.js",
-    "screenshots": "node tests/e2e.js --screenshots"
+    "screenshots": "node tests/e2e.js --screenshots",
+    "check": "node --check index.js && node --check public/app.js && node --check public/transport.js && node --check public/match-rules.js && node --check public/sw.js"
   },
   "author": "0x0806",
   "license": "MIT",

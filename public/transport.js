@@ -15,8 +15,9 @@
   'use strict';
 
   const MODES = ['text', 'video'];
-  const MAX_MESSAGE_CHARS = 4000;
-  const MAX_PAYLOAD_CHARS = 64000;
+  const Rules = window.MatchRules;
+  const MAX_MESSAGE_CHARS = 150000; // encrypted envelopes (text, or a compressed image)
+  const MAX_PAYLOAD_CHARS = 220000;
   const RELAYED = new Set([
     'message-received', 'exchange-key', 'partner-typing', 'offer', 'answer', 'ice-candidate',
     'video-call-request', 'video-call-response', 'media-ready', 'call-ended'
@@ -56,7 +57,7 @@
         'partner-disconnected', 'message-received', 'message-delivered', 'exchange-key',
         'partner-typing', 'offer', 'answer', 'ice-candidate', 'video-call-request',
         'video-call-response', 'media-ready', 'call-ended', 'report-received',
-        'consent-required', 'error-message', 'rate-limited'
+        'consent-required', 'error-message', 'rate-limited', 'server-shutdown'
       ];
       this.broadcasts.forEach((ev) => socket.on(ev, (d) => this.fire(ev, d)));
       if (socket.connected) queueMicrotask(() => this.fire('connect'));
@@ -84,6 +85,8 @@
       this.room = null;
       this.lastPartner = null;
       this.lastPartnerAt = 0;
+      this.prefs = { mode: null, room: '', interests: [], lang: 'any', since: 0 };
+      this.avoid = new Set();
       this.cooldown = Number.isFinite(cfg.rematchCooldownMs) ? cfg.rematchCooldownMs : 30000;
       this.pendingProposal = null;
       this.seen = new Map(); // presence: id -> last seen ms
@@ -110,7 +113,9 @@
     _connectLink(link) {
       const client = window.mqtt.connect(link.url, {
         clientId: `sc_${this.id}_${randomHex(2)}`, clean: true, keepalive: 30,
-        connectTimeout: 10000, reconnectPeriod: 0, resubscribe: false
+        connectTimeout: 10000, reconnectPeriod: 0, resubscribe: false,
+        // If this browser vanishes without saying goodbye, the broker announces it on our "gone" topic.
+        will: { topic: this.topic('gone', this.id), payload: JSON.stringify({ n: 'gone', from: this.id, mid: `will${randomHex(5)}` }), qos: 1, retain: false }
       });
       link.client = client;
       client.on('connect', () => {
@@ -152,9 +157,16 @@
       this.links.forEach((l) => l.up && l.client.unsubscribe(topic));
     }
 
+    /** Sent twice because one copy can be lost on a flaky broker link. */
+    _bye() {
+      const to = this.partner; const room = this.room;
+      this._publish(to, 'bye');
+      setTimeout(() => { if (this.connected) this._send(this.topic('u', to), { n: 'bye', room }, 1); }, 400);
+    }
+
     _shutdown() {
-      if (this.partner) this._publish(this.partner, 'bye');
-      this.links.forEach((l) => { try { l.client.end(true); } catch { /* ignore */ } });
+      if (this.partner) { this._publish(this.partner, 'bye'); this._publish(this.partner, 'bye'); }
+      this.links.forEach((l) => { try { l.client.end(false); } catch { /* ignore */ } }); // graceful: lets the 'bye' flush first
     }
 
     _send(topic, obj, qos) {
@@ -221,15 +233,35 @@
         if (isNew) this.fire('online-count', this.seen.size + 1);
         return;
       }
+      if (topic.startsWith(this.topic('gone'))) return this._onGone(m);
       if (topic.startsWith(this.topic('lobby'))) return this._onHello(m);
       if (topic === this.topic('u', this.id)) return this._onInbox(m);
     }
 
-    _recent(id) { return this.lastPartner === id && Date.now() - this.lastPartnerAt < this.cooldown; }
+    /**
+     * The broker says our partner's connection dropped. One flaky broker link also triggers this while the
+     * partner is fine on the other link, so confirm with a short wait before ending the chat.
+     */
+    _onGone(m) {
+      if (this.state !== 'chatting' || m.from !== this.partner || this.goneTimer) return;
+      const asked = Date.now();
+      this.goneTimer = setTimeout(() => {
+        this.goneTimer = null;
+        if (this.state === 'chatting' && this.partnerSeen < asked) this._endChat(true);
+      }, 6500);
+    }
+
+    _recent(id) { return !this.prefs.room && this.lastPartner === id && Date.now() - this.lastPartnerAt < this.cooldown; }
+
+    get lobbyKey() { return this.prefs.room ? `${this.mode}.${this.prefs.room}` : this.mode; }
 
     _onHello(m) {
-      if (this.state !== 'waiting' || m.n !== 'hello' || m.d !== this.mode) return;
-      if (this._recent(m.from)) return;
+      const d = m.d && typeof m.d === 'object' ? m.d : null;
+      if (this.state !== 'waiting' || m.n !== 'hello' || !d || d.mode !== this.mode) return;
+      if (this._recent(m.from) || this.avoid.has(m.from)) return;
+      const mine = { ...this.prefs, waited: Date.now() - this.prefs.since };
+      const theirs = { mode: d.mode, room: this.prefs.room, interests: Rules.normInterests(d.interests), lang: Rules.normLang(d.lang), waited: Number(d.w) || 0 };
+      if (!Rules.compatible(mine, theirs)) return; // soft preferences relax with waiting time
       // Only the larger id proposes, so two seekers never propose to each other at once.
       if (this.id <= m.from) return;
       this.state = 'proposing';
@@ -254,7 +286,7 @@
         // Our accept may have been lost: confirm again instead of rejecting.
         if (this.state === 'chatting' && m.from === this.partner && m.d && m.d.room === this.room) return this._publish(m.from, 'accept', { room: this.room });
         const ok = this.state === 'waiting' && m.d && m.d.mode === this.mode &&
-          typeof m.d.room === 'string' && m.d.room.length === 32 && !this._recent(m.from);
+          typeof m.d.room === 'string' && m.d.room.length === 32 && !this._recent(m.from) && !this.avoid.has(m.from);
         if (!ok) return this._publish(m.from, 'reject');
         this._publish(m.from, 'accept', { room: m.d.room });
         return this._pair(m.from, m.d.room);
@@ -314,11 +346,12 @@
       this.state = 'chatting';
       this.pendingProposal = null;
       this.partnerSeen = Date.now();
+      this._sub(this.topic('gone', partnerId));
       clearInterval(this.timers.ping);
       this.timers.ping = setInterval(() => {
         if (this.state !== 'chatting') return;
         this._publish(this.partner, 'ping');
-        if (Date.now() - this.partnerSeen > 20000) this._endChat(true);
+        if (Date.now() - this.partnerSeen > 75000) this._endChat(true); // hidden tabs can throttle timers, so be patient; 'bye' covers normal exits
       }, 4000);
       this.fire('partner-found', { partnerId, roomId: room, chatMode: this.mode });
     }
@@ -326,11 +359,13 @@
     _leaveLobby() {
       clearInterval(this.timers.hello);
       clearTimeout(this.timers.proposal);
-      if (this.mode) this._unsub(this.topic('lobby', this.mode));
+      if (this.mode) this._unsub(this.topic('lobby', this.lobbyKey));
     }
 
     _endChat(notifyApp) {
       const had = this.state === 'chatting';
+      if (had && this.partner) this._unsub(this.topic('gone', this.partner));
+      clearTimeout(this.goneTimer); this.goneTimer = null;
       clearInterval(this.timers.ping);
       this._clearPending();
       if (had) {
@@ -347,10 +382,10 @@
       switch (ev) {
         case 'find-partner': return this._find(data || {});
         case 'leave-queue':
-          if (this.state === 'waiting' || this.state === 'proposing') { this._leaveLobby(); this.state = 'idle'; }
+          if (this.state === 'waiting' || this.state === 'proposing') { this._leaveLobby(); this.state = 'idle'; this.pendingProposal = null; }
           return;
         case 'skip-partner':
-          if (this.partner) this._publish(this.partner, 'bye');
+          if (this.partner) this._bye();
           this._endChat(false);
           if (this.state === 'waiting' || this.state === 'proposing') { this._leaveLobby(); this.state = 'idle'; }
           return;
@@ -385,15 +420,17 @@
     _find(info) {
       if (info.consent !== true) return this.fire('consent-required');
       if (!MODES.includes(info.chatMode)) return this.fire('error-message', { message: 'Unknown chat mode.' });
-      if (this.partner) { this._publish(this.partner, 'bye'); this._endChat(false); }
+      if (this.partner) { this._bye(); this._endChat(false); }
       this._leaveLobby();
       this.mode = info.chatMode;
+      this.prefs = { mode: info.chatMode, room: Rules.normRoom(info.room), interests: Rules.normInterests(info.interests), lang: Rules.normLang(info.lang), since: Date.now() };
+      this.avoid = new Set(Rules.normAvoid(info.avoid));
       this.state = 'waiting';
       this.pendingProposal = null;
-      this._sub(this.topic('lobby', this.mode));
+      this._sub(this.topic('lobby', this.lobbyKey));
       const hello = () => {
         if (this.state === 'idle' || this.state === 'chatting' || !this.connected) return;
-        this._send(this.topic('lobby', this.mode), { n: 'hello', d: this.mode }, 0);
+        this._send(this.topic('lobby', this.lobbyKey), { n: 'hello', d: { mode: this.mode, interests: this.prefs.interests, lang: this.prefs.lang, w: Date.now() - this.prefs.since } }, 0);
       };
       hello();
       this.timers.hello = setInterval(hello, 1500);

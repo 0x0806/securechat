@@ -22,6 +22,7 @@ const args = Object.fromEntries(process.argv.slice(2).map((a) => {
 }));
 const SHOTS = path.join(__dirname, '..', 'docs', 'screenshots');
 const results = [];
+const allPages = [];
 let currentSuite = '';
 
 function findChromium() {
@@ -32,11 +33,13 @@ function findChromium() {
 }
 
 async function check(name, fn) {
+  if (args.grep && !new RegExp(args.grep, 'i').test(name)) return;
   const label = `${currentSuite} › ${name}`;
   try { await fn(); results.push({ label, ok: true }); console.log(`  ✔ ${name}`); }
   catch (err) {
     results.push({ label, ok: false, err });
-    console.log(`  ✘ ${name}\n      ${String(err.message).split('\n').slice(0, 4).join('\n      ')}`);
+    const where = String(err.stack || '').split('\n').filter((l) => /e2e\.js:\d+/.test(l)).slice(0, 1).join('').trim();
+    console.log(`  ✘ ${name}\n      ${String(err.message).split('\n').slice(0, 4).join('\n      ')}${where ? `\n      at ${where}` : ''}`);
   }
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -60,10 +63,12 @@ function serveStatic() {
 
 async function newPage(browser, url, { width = 1280, height = 800, consent = false, dark = false } = {}) {
   const ctx = await browser.newContext({
-    viewport: { width, height }, permissions: ['camera', 'microphone'], colorScheme: dark ? 'dark' : 'light', deviceScaleFactor: width < 600 ? 2 : 1
+    viewport: { width, height }, permissions: ['camera', 'microphone', 'clipboard-read', 'clipboard-write'], colorScheme: dark ? 'dark' : 'light', deviceScaleFactor: width < 600 ? 2 : 1
   });
   const page = await ctx.newPage();
   page.errors = [];
+  page.label = `page${allPages.length}`;
+  allPages.push(page);
   page.on('pageerror', (e) => page.errors.push(`pageerror: ${e.message}`));
   page.on('console', (m) => { if (m.type() === 'error' && !/favicon|Failed to load resource/.test(m.text())) page.errors.push(`console: ${m.text()}`); });
   page.on('response', (r) => { if (r.status() >= 400 && !/\/health$/.test(r.url())) page.errors.push(`http ${r.status()} ${r.url()}`); });
@@ -104,6 +109,21 @@ const dump = (p) => p.evaluate(() => {
   const S = window.__securechat.state; const t = S.transport;
   return JSON.stringify({ aes: !!S.aes, key: !!S.pendingKey, partner: S.partnerId && S.partnerId.slice(0, 4), me: String(t.id).slice(0, 4), tstate: t.state, room: t.room && t.room.slice(0, 4), tp: t.partner && t.partner.slice(0, 4), links: t.links && t.links.map((l) => l.up), msgs: [...document.querySelectorAll('#messages > *')].map((x) => `${x.className}:${x.textContent.slice(0, 40)}`) });
 });
+
+const TINY_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8z8BQz0AEYBxVSF+FABJADveWkH6oAAAAAElFTkSuQmCC', 'base64');
+
+async function freshPair(browser, url, mode = 'text') {
+  const x = await newPage(browser, url, { consent: true });
+  const y = await newPage(browser, url, { consent: true });
+  await startBoth(x, y, mode);
+  await Promise.all([x, y].map(encrypted));
+  return [x, y];
+}
+const closeAll = (...ps) => Promise.all(ps.map((p) => p.context().close().catch(() => {})));
+const nthText = async (p, i) => {
+  try { await p.waitForFunction((n) => document.querySelectorAll('#messages .msg.them').length >= n, i + 1, { timeout: 15000 }); }
+  catch { throw new Error(`message #${i} never arrived; have ${JSON.stringify(await theirs(p))}`); }
+};
 
 async function suite(browser, name, baseUrl, query, opts = {}) {
   currentSuite = name;
@@ -193,6 +213,7 @@ async function suite(browser, name, baseUrl, query, opts = {}) {
     await a.waitForSelector('#typing.hidden', { state: 'attached', timeout: 5000 });
     await a.click('#emojiBtn');
     await a.waitForSelector('#emojiPop:not(.hidden)');
+    await a.click('#emojiPop [data-set="Things"]');
     await a.click('#emojiPop button[aria-label="fire"]');
     assert((await a.inputValue('#messageInput')).includes('🔥'));
     await a.fill('#messageInput', '');
@@ -205,6 +226,261 @@ async function suite(browser, name, baseUrl, query, opts = {}) {
     assert((await texts(a)).filter((t) => t.startsWith('xxx')).length === 1);
   });
 
+
+
+  /* ---------------------------------------------------------------- v3 features */
+  await check('quick replies, icebreaker and Shift+Enter multi-line messages', async () => {
+    const [x, y] = await freshPair(browser, url);
+    assert(await x.isVisible('#quick'), 'quick replies should show in an empty chat');
+    await x.click('#quick .chip-accent');
+    assert((await x.inputValue('#messageInput')).endsWith('?') || (await x.inputValue('#messageInput')).length > 8, 'icebreaker should fill the box');
+    await x.fill('#messageInput', '');
+    await x.focus('#messageInput');
+    const h0 = await x.$eval('#messageInput', (n) => n.offsetHeight);
+    await x.keyboard.type('line one');
+    await x.keyboard.press('Shift+Enter');
+    await x.keyboard.type('line two');
+    await x.keyboard.press('Shift+Enter');
+    await x.keyboard.type('line three');
+    assert(await x.$eval('#messageInput', (n) => n.offsetHeight) > h0, 'the box should grow with its content');
+    await x.press('#messageInput', 'Backspace');
+    await x.fill('#messageInput', 'a'.repeat(450));
+    assert(await x.isVisible('#counter') && /450\/500/.test(await x.textContent('#counter')), 'character counter near the limit');
+    await x.fill('#messageInput', 'line one\nline two');
+    await x.keyboard.press('Enter');
+    await nthText(y, 0);
+    assert((await theirs(y))[0] === 'line one\nline two', `got ${JSON.stringify(await theirs(y))}`);
+    assert(!(await x.isVisible('#quick')), 'quick replies hide after the first message');
+    await closeAll(x, y);
+  });
+
+  await check('formatting, shortcodes, slash commands and the profanity filter', async () => {
+    const [x, y] = await freshPair(browser, url);
+    await send(x, '**bold** *italic* `code` ~~gone~~ :fire:');
+    await nthText(y, 0);
+    assert(await y.$eval('#messages .msg.them p strong', (n) => n.textContent) === 'bold');
+    assert(await y.$eval('#messages .msg.them p em', (n) => n.textContent) === 'italic');
+    assert(await y.$eval('#messages .msg.them p code', (n) => n.textContent) === 'code');
+    assert(await y.$eval('#messages .msg.them p del', (n) => n.textContent) === 'gone');
+    assert((await theirs(y))[0].includes('🔥'), 'shortcode should become an emoji');
+    await send(x, '/shrug whatever');
+    await nthText(y, 1);
+    assert((await theirs(y))[1].includes('¯\\_(ツ)_/¯') || (await theirs(y))[1].includes('(ツ)'), 'shrug');
+    await send(x, '/roll');
+    await nthText(y, 2);
+    assert(/^🎲 I rolled a [1-6]$/.test((await theirs(y))[2]));
+    await send(x, '/help');
+    assert(await x.$$eval('#messages .sys', (n) => n.some((e) => /Commands:/.test(e.textContent))), '/help prints locally');
+    await y.click('#settingsBtn');
+    await y.check('#profanityChk');
+    await y.click('#settingsDialog [data-close]');
+    await send(x, 'well shit happens');
+    await nthText(y, 3);
+    assert((await theirs(y))[3] === 'well **** happens', `filter: ${(await theirs(y))[3]}`);
+    await closeAll(x, y);
+  });
+
+  await check('reactions, replies and read receipts', async () => {
+    const [x, y] = await freshPair(browser, url);
+    await send(x, 'react to me');
+    await nthText(y, 0);
+    await y.hover('#messages .msg.them');
+    await y.click('#messages .msg.them [aria-label="Add a reaction"]');
+    await y.click('#messages .msg.them .react-pick [aria-label="React ❤️"]');
+    await x.waitForSelector('#messages .msg.own .react', { timeout: 10000 });
+    assert((await x.textContent('#messages .msg.own .react')).includes('❤️'));
+    await x.waitForFunction(() => /Seen/.test(document.querySelector('#messages .msg.own .delivery').textContent), null, { timeout: 10000 });
+    await y.hover('#messages .msg.them');
+    await y.click('#messages .msg.them [aria-label="Copy message"]');
+    await y.waitForSelector('.toast-success');
+    assert(await y.evaluate(() => navigator.clipboard.readText()) === 'react to me', 'copy puts the text on the clipboard');
+    await y.hover('#messages .msg.them');
+    await y.click('#messages .msg.them [aria-label="Reply"]');
+    assert(await y.isVisible('#replyBar'));
+    await send(y, 'this is my reply');
+    await x.waitForSelector('#messages .msg.them .quote', { timeout: 10000 });
+    assert((await x.textContent('#messages .msg.them .quote')).includes('react to me'));
+    assert(!(await y.isVisible('#replyBar')), 'reply bar clears after sending');
+    await closeAll(x, y);
+  });
+
+  await check('photos: hidden until shown, viewable, and sent encrypted', async () => {
+    const [x, y] = await freshPair(browser, url);
+    await x.setInputFiles('#fileInput', { name: 'dot.png', mimeType: 'image/png', buffer: TINY_PNG });
+    await y.waitForSelector('#messages .msg.them figure.hidden-img', { timeout: 15000 });
+    assert(await y.isVisible('#messages .msg.them .reveal'));
+    await y.click('#messages .msg.them .reveal');
+    assert(await y.$$eval('#messages figure.hidden-img', (n) => n.length) === 0);
+    await y.click('#messages .msg.them figure img');
+    await y.waitForSelector('#imageDialog[open]');
+    await y.click('#imageDialog [data-close]');
+    await x.waitForFunction(() => /Delivered/.test(document.querySelector('#messages .msg.own .delivery').textContent), null, { timeout: 15000 });
+    await y.click('#settingsBtn'); await y.uncheck('#blurImgChk'); await y.click('#settingsDialog [data-close]');
+    await x.setInputFiles('#fileInput', { name: 'bad.txt', mimeType: 'text/plain', buffer: Buffer.from('hello') });
+    await x.waitForSelector('.toast-error');
+    await closeAll(x, y);
+  });
+
+  await check('nickname and avatar reach the partner, and settings persist', async () => {
+    const [x, y] = await freshPair(browser, url);
+    await x.click('#settingsBtn');
+    await x.fill('#nickInput', 'Skylark');
+    await x.click('#avatarPick button:nth-child(3)');
+    await x.press('#nickInput', 'Tab');
+    await y.waitForFunction(() => document.querySelector('.who-text strong').textContent === 'Skylark', null, { timeout: 10000 });
+    assert(await y.getAttribute('.panel-head .avatar', 'data-emoji') === '🦊');
+    await x.click('#accentPick [data-accent="rose"]');
+    assert(await x.evaluate(() => document.documentElement.dataset.accent) === 'rose');
+    await x.click('#fontSel'); await x.selectOption('#fontSel', 'lg');
+    await x.click('#settingsDialog [data-close]');
+    await x.reload();
+    assert(await x.evaluate(() => document.documentElement.dataset.accent) === 'rose', 'accent persists');
+    assert(await x.evaluate(() => document.documentElement.dataset.font) === 'lg', 'font size persists');
+    await closeAll(x, y);
+  });
+
+  await check('typing indicator can be switched off for privacy', async () => {
+    const [x, y] = await freshPair(browser, url);
+    await x.click('#settingsBtn'); await x.uncheck('#typingChk'); await x.click('#settingsDialog [data-close]');
+    await x.focus('#messageInput');
+    await x.keyboard.type('typing quietly', { delay: 30 });
+    await sleep(1200);
+    assert(await y.isHidden('#typing'), 'partner must not see typing when it is off');
+    await closeAll(x, y);
+  });
+
+  await check('settings: theme, neutral title, reduced motion, session stats, corrupted settings', async () => {
+    const [x, y] = await freshPair(browser, url);
+    await send(x, 'one'); await nthText(y, 0);
+    await x.click('#settingsBtn');
+    await x.selectOption('#themeSel', 'dark');
+    assert(await x.evaluate(() => document.documentElement.dataset.theme) === 'dark');
+    await x.selectOption('#themeSel', 'light');
+    assert(await x.evaluate(() => document.documentElement.dataset.theme) === 'light');
+    await x.check('#disguiseChk');
+    assert(await x.title() === 'Notes', 'neutral title option');
+    await x.uncheck('#disguiseChk');
+    await x.check('#motionChk');
+    assert(await x.evaluate(() => document.documentElement.dataset.motion) === 'reduce');
+    assert(/1 chat.*1 sent/.test(await x.textContent('#statsText')), `stats: ${await x.textContent('#statsText')}`);
+    await closeAll(x, y);
+    const ctx = await browser.newContext();
+    await ctx.addInitScript(() => localStorage.setItem('securechat.settings.v1', '{"accent":"neon","font":42,"interests":"x","nick":"<b>hi</b>","avatar":"💣"}'));
+    const bad = await ctx.newPage();
+    bad.errors = []; bad.label = 'corrupt'; allPages.push(bad);
+    bad.on('pageerror', (er) => bad.errors.push(er.message));
+    await bad.goto(url);
+    assert(await bad.evaluate(() => document.documentElement.dataset.accent) === 'violet', 'bad accent falls back');
+    assert(await bad.evaluate(() => document.documentElement.dataset.font) === 'md', 'bad font falls back');
+    assert(await bad.evaluate(() => window.SCFeatures.settings().nick) === 'bhi/b', 'nickname is sanitised');
+    await ctx.close();
+  });
+
+  await check('links ask before opening; shortcuts, panic and offline banner', async () => {
+    const [x, y] = await freshPair(browser, url);
+    await send(x, 'see https://example.org/page');
+    await nthText(y, 0);
+    await y.click('#messages .msg.them a');
+    await y.waitForSelector('#linkDialog[open]');
+    assert((await y.textContent('#linkUrl')).includes('example.org'));
+    await y.click('#linkDialog [data-close]');
+    await y.keyboard.press('?');
+    await y.waitForSelector('#shortcutsDialog[open]');
+    await y.keyboard.press('Escape');
+    await x.context().setOffline(true);
+    await x.waitForSelector('#netBanner:not(.hidden)', { timeout: 5000 });
+    await x.context().setOffline(false);
+    await x.waitForSelector('#netBanner.hidden', { state: 'attached', timeout: 5000 });
+    await x.click('#panicBtn');
+    await x.waitForSelector('#welcomeScreen:not(.hidden)');
+    assert(await x.title() === 'Notes', 'panic uses a neutral title');
+    await y.waitForSelector('#endedBar:not(.hidden)', { timeout: 20000 });
+    await closeAll(x, y);
+  });
+
+  await check('auto-find-next when the partner leaves (opt-in)', async () => {
+    const [x, y] = await freshPair(browser, url);
+    await y.click('#settingsBtn'); await y.check('#autoNextChk'); await y.click('#settingsDialog [data-close]');
+    await x.click('[data-action="home"]');
+    await y.waitForSelector('#waitingScreen:not(.hidden)', { timeout: 15000 });
+    await closeAll(x, y);
+  });
+
+  await check('interests are a soft preference: mismatched people still meet', async () => {
+    const x = await newPage(browser, url, { consent: true });
+    const y = await newPage(browser, url, { consent: true });
+    for (const [p, interest] of [[x, 'pottery'], [y, 'rockets']]) {
+      await p.click('#prefs summary');
+      await p.fill('#interestsInput', interest);
+      await p.press('#interestsInput', 'Enter');
+      assert(await p.$$eval('#interestChips .chip-tag', (n) => n.length) === 1);
+      await p.click('#startTextBtn');
+    }
+    await Promise.all([x, y].map((p) => p.waitForSelector('#sessionScreen:not(.hidden)', { timeout: 40000 })));
+    await closeAll(x, y);
+  });
+
+  await check('private rooms only match each other', async () => {
+    const roomUrl = `${url}${url.includes('?') ? '&' : '?'}room=friends42`;
+    const p1 = await newPage(browser, roomUrl, { consent: true });
+    const outsider = await newPage(browser, url, { consent: true });
+    assert(await p1.isVisible('#roomBanner'), 'room banner should show');
+    await p1.click('#startTextBtn');
+    await p1.waitForSelector('#waitingScreen:not(.hidden)');
+    await outsider.click('#startTextBtn');
+    await outsider.waitForSelector('#waitingScreen:not(.hidden)');
+    await sleep(11000); // longer than the soft-preference wait
+    assert(/^0:(0[7-9]|1\d)$/.test(await p1.textContent('#waitTimer')), `wait timer: ${await p1.textContent('#waitTimer')}`);
+    assert((await p1.textContent('#waitTip')).startsWith('Tip:'), 'a tip is shown while waiting');
+    assert(await outsider.isHidden('#sessionScreen'), 'outsider must not be matched into a private room');
+    assert(await p1.isHidden('#sessionScreen'), 'room owner must still be waiting');
+    const p2 = await newPage(browser, roomUrl, { consent: true });
+    await p2.click('#startTextBtn');
+    await Promise.all([p1, p2].map((p) => p.waitForSelector('#sessionScreen:not(.hidden)', { timeout: 40000 })));
+    await closeAll(p1, p2, outsider);
+  });
+
+  await check('invite dialog builds a working link; camera test dialog works', async () => {
+    const x = await newPage(browser, url, { consent: true });
+    await x.click('#prefs summary');
+    await x.click('#inviteBtn');
+    await x.waitForSelector('#inviteDialog[open]');
+    assert(/[?&]room=[a-z0-9]{8}/.test(await x.inputValue('#inviteLink')));
+    await x.click('#useInvite');
+    assert(await x.isVisible('#roomBanner'));
+    await x.click('#leaveRoomBtn');
+    assert(await x.isHidden('#roomBanner'));
+    await x.fill('#roomCodeInput', 'abcd2345');
+    await x.click('#joinRoomBtn');
+    assert((await x.textContent('#roomName')) === 'abcd2345', 'joining by code');
+    await x.click('#leaveRoomBtn');
+    await x.click('#testCamBtn');
+    await x.waitForSelector('#testDialog[open]');
+    await x.waitForFunction(() => /working/.test(document.getElementById('testStatus').textContent), null, { timeout: 15000 });
+    await x.click('#testDone');
+    await x.waitForFunction(() => !document.getElementById('testVideo').srcObject, null, { timeout: 5000 });
+    await closeAll(x);
+  });
+
+  await check('a connection that dies without saying goodbye is detected within seconds', async () => {
+    const [x, y] = await freshPair(browser, url);
+    await y.evaluate(() => {
+      const t = window.SC.S.transport;
+      if (t.kind === 'mqtt') t.links.forEach((l) => { l.client.removeAllListeners('close'); l.client.stream.destroy(); });
+      else t.socket.io.engine.close();
+    });
+    await x.waitForSelector('#endedBar:not(.hidden)', { timeout: 25000 });
+    await closeAll(x, y);
+  });
+
+  await check('PWA: manifest, icons and service worker', async () => {
+    const x = await newPage(browser, url, { consent: true });
+    const m = await x.evaluate(async () => (await (await fetch('manifest.webmanifest')).json()));
+    assert(m.short_name === 'SecureChat' && m.icons.length >= 3);
+    assert((await x.evaluate(async () => (await fetch('icons/icon-192.png')).status)) === 200);
+    assert(await x.evaluate(() => navigator.serviceWorker.ready.then((r) => Boolean(r.active))), 'service worker should activate');
+    await closeAll(x);
+  });
 
   await check('upgrading to video: decline, then accept, then both see video', async () => {
     await a.click('#askVideoBtn');
@@ -248,6 +524,11 @@ async function suite(browser, name, baseUrl, query, opts = {}) {
     await a.waitForSelector('#endedBar:not(.hidden)', { timeout: 15000 });
     assert(/left/i.test(await a.textContent('#partnerStatus')));
     assert(await a.isHidden('#composer'), 'composer should be hidden after partner left');
+    assert((await b.evaluate(() => sessionStorage.getItem('securechat.blocked') || '')).length > 2, 'reported person goes on the block list');
+    await b.click('#settingsBtn');
+    await b.click('#unblockBtn');
+    assert(await b.isDisabled('#unblockBtn'), 'block list should be empty after clearing');
+    await b.click('#settingsDialog [data-close]');
   });
 
   await check('after the partner leaves, the person left behind can find someone new', async () => {
@@ -288,6 +569,55 @@ async function suite(browser, name, baseUrl, query, opts = {}) {
     await a.waitForFunction(() => document.getElementById('callTimer').textContent !== '00:00', null, { timeout: 10000 });
   });
 
+
+  await check('start with camera off (opt-in) and blur-by-default for partner video', async () => {
+    const [x, y] = await freshPair(browser, url, 'video');
+    await Promise.all([x, y].map(remotePlaying));
+    await x.click('[data-action="home"]'); await y.click('[data-action="home"]');
+    await x.click('#settingsBtn'); await x.check('#camOffChk'); await x.check('#blurRemoteChk'); await x.click('#settingsDialog [data-close]');
+    await y.waitForSelector('#welcomeScreen:not(.hidden)');
+    await startBoth(x, y, 'video');
+    await Promise.all([x, y].map(encrypted));
+    assert(await x.evaluate(() => !window.__securechat.state.localStream.getVideoTracks()[0].enabled), 'camera should start off');
+    assert(await x.getAttribute('#camBtn', 'aria-pressed') === 'true');
+    await x.waitForSelector('#blurVeil:not(.hidden)', { timeout: 30000 });
+    assert(await x.$eval('#remoteVideo', (v) => v.classList.contains('blurred')), 'partner video starts blurred');
+    await closeAll(x, y);
+  });
+
+  await check('video call extras: reactions, blur, quality, fit, network badge, mic meter', async () => {
+    await a.click('#reactBtn');
+    await a.click('#reactBar [aria-label="Send 🔥"]');
+    await b.waitForSelector('#reactFloat .float', { timeout: 10000 });
+    await a.click('#moreBtn');
+    await a.selectOption('#qualitySel', 'low');
+    await a.waitForFunction(() => { const s = window.__securechat.state.pc.getSenders().find((x) => x.track && x.track.kind === 'video'); return s && s.getParameters().encodings[0].maxBitrate === 250000; }, null, { timeout: 5000 });
+    await a.$eval('#volRange', (n) => { n.value = '0.4'; n.dispatchEvent(new Event('input', { bubbles: true })); });
+    assert(Math.abs(await a.$eval('#remoteVideo', (v) => v.volume) - 0.4) < 0.01, 'volume slider');
+    assert(await a.$$eval('#camSel option', (o) => o.length) > 0 && await a.$$eval('#micSel option', (o) => o.length) > 0, 'device pickers list devices');
+    await a.uncheck('#mirrorChk');
+    assert(await a.$eval('#localBox', (n) => n.classList.contains('no-mirror')), 'mirror off');
+    await a.check('#mirrorChk');
+    await a.check('#blurChk');
+    assert(await a.$eval('#remoteVideo', (v) => v.classList.contains('blurred')), 'remote video should blur');
+    await a.keyboard.press('Escape');
+    assert(await a.isHidden('#stageMenu'), 'Escape closes the video options');
+    await a.click('#blurVeil');
+    assert(!(await a.$eval('#remoteVideo', (v) => v.classList.contains('blurred'))), 'veil click reveals the video');
+    await a.click('#moreBtn');
+    await a.click('#fitBtn');
+    assert(await a.$eval('#remoteVideo', (v) => v.style.objectFit) === 'contain');
+    await a.uncheck('#selfChk');
+    assert(await a.isHidden('#localBox'));
+    await a.check('#selfChk');
+    await a.click('#localBox');
+    assert(await a.getAttribute('#localBox', 'data-corner') === 'br', 'self view moves to the next corner');
+    await a.waitForFunction(() => !/Checking/.test(document.getElementById('netText').textContent), null, { timeout: 15000 });
+    assert(/connection/.test(await a.textContent('#netText')));
+    assert(await a.evaluate(() => getComputedStyle(document.getElementById('micBtn')).getPropertyValue('--lvl') !== ''));
+    await a.keyboard.press('Escape');
+  });
+
   let c;
   await check('video chat: Next re-matches with someone else and keeps the camera on', async () => {
     c = await newPage(browser, url, { consent: true });
@@ -302,6 +632,8 @@ async function suite(browser, name, baseUrl, query, opts = {}) {
   });
 
   await check('closing a browser tab notifies the partner', async () => {
+    await c.evaluate(() => window.dispatchEvent(new Event('pagehide'))); // what a real tab close fires
+    await sleep(800); // a real browser gives the page a moment to flush
     await c.close({ runBeforeUnload: false });
     await a.waitForSelector('#endedBar:not(.hidden)', { timeout: 30000 });
     assert(/left/i.test(await a.textContent('#partnerStatus')));
@@ -312,8 +644,8 @@ async function suite(browser, name, baseUrl, query, opts = {}) {
   });
 
   await check('no uncaught errors in the page console', async () => {
-    const errs = [...(b.errors || [])];
-    assert(errs.length === 0, errs.join(' | '));
+    const errs = allPages.flatMap((p) => p.errors.map((m) => `${p.label}: ${m}`));
+    assert(errs.length === 0, errs.slice(0, 5).join(' | '));
   });
   await b.context().close();
 }
@@ -324,6 +656,16 @@ async function showcase(browser, url) {
   const talk = async (p, q, lines) => { for (const [who, text] of lines) { await send(who === 'a' ? p : q, text); await sleep(350); } };
   const a = await newPage(browser, `${url}&x=1`, { consent: true });
   const b = await newPage(browser, `${url}&x=1`, { consent: true });
+  await a.click('#prefs summary');
+  for (const tag of ['ramen', 'travel']) { await a.fill('#interestsInput', tag); await a.press('#interestsInput', 'Enter'); }
+  await a.selectOption('#langSelect', 'en');
+  await a.waitForTimeout(300);
+  await a.screenshot({ path: path.join(SHOTS, 'preferences.png') });
+  await a.click('#settingsBtn');
+  await a.waitForSelector('#settingsDialog[open]');
+  await a.waitForTimeout(500);
+  await a.screenshot({ path: path.join(SHOTS, 'settings.png') });
+  await a.click('#settingsDialog [data-close]');
   await a.click('#startVideoBtn');
   await a.waitForSelector('#waitingScreen:not(.hidden)');
   await a.waitForTimeout(1200);
@@ -334,6 +676,26 @@ async function showcase(browser, url) {
   await Promise.all([a, b].map(encrypted));
   await talk(a, b, [['b', 'Hey! Where are you chatting from?'], ['a', 'Lisbon. It’s almost midnight here 🌙'], ['b', 'Nice, I’m in Osaka, just had breakfast ☕'], ['a', 'Ha, other side of the world. What are you up to today?'], ['b', 'Learning to make ramen from scratch 🍜']]);
   await a.waitForFunction(() => document.querySelectorAll('#messages .msg').length >= 5);
+  // a reaction, a reply and a photo (shown hidden until the other person chooses to reveal it)
+  await a.hover('#messages .msg.them');
+  await a.click('#messages .msg.them [aria-label="Add a reaction"]');
+  await a.click('#messages .msg.them .react-pick [aria-label="React ❤️"]');
+  await a.locator('#messages .msg.them').last().hover();
+  await a.locator('#messages .msg.them').last().locator('[aria-label="Reply"]').click();
+  await send(a, 'Ramen from scratch sounds amazing!');
+  await b.evaluate(async () => {
+    const c = document.createElement('canvas'); c.width = 520; c.height = 340;
+    const g = c.getContext('2d'); const grad = g.createLinearGradient(0, 0, 520, 340);
+    grad.addColorStop(0, '#ffc83d'); grad.addColorStop(1, '#e8431f'); g.fillStyle = grad; g.fillRect(0, 0, 520, 340);
+    g.fillStyle = '#13162e'; g.beginPath(); g.arc(260, 200, 90, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#fff'; g.font = 'bold 54px sans-serif'; g.textAlign = 'center'; g.fillText('ramen!', 260, 215);
+    const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
+    const dt = new DataTransfer(); dt.items.add(new File([blob], 'ramen.png', { type: 'image/png' }));
+    const input = document.getElementById('fileInput'); input.files = dt.files; input.dispatchEvent(new Event('change'));
+  });
+  await a.waitForSelector('#messages figure.hidden-img', { timeout: 20000 });
+  await a.evaluate(() => { const m = document.getElementById('messages'); m.scrollTop = m.scrollHeight; });
+  await a.waitForTimeout(600);
   await a.screenshot({ path: path.join(SHOTS, 'text-chat.png') });
   await a.click('#themeBtn'); await a.waitForTimeout(250);
   await a.screenshot({ path: path.join(SHOTS, 'text-chat-dark.png') });
@@ -349,6 +711,9 @@ async function showcase(browser, url) {
   await Promise.all([a, b].map(remotePlaying));
   await a.waitForTimeout(4600);
   await a.screenshot({ path: path.join(SHOTS, 'video-call.png') });
+  await a.click('#moreBtn');
+  await a.waitForTimeout(300);
+  await a.screenshot({ path: path.join(SHOTS, 'video-menu.png') });
   await a.context().close(); await b.context().close();
 }
 

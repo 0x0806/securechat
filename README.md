@@ -29,22 +29,36 @@ These are real captures from the end-to-end test suite (two Chromium browsers ta
 |---|---|
 | ![Video call](docs/screenshots/video-call.png) | ![Safety code dialog](docs/screenshots/safety-code.png) |
 
-| Switch to video request | Mobile |
+| Match preferences and private rooms | Settings |
 |---|---|
-| ![Video request dialog](docs/screenshots/video-request.png) | <img src="docs/screenshots/mobile-chat.png" alt="Mobile chat" width="220"> <img src="docs/screenshots/mobile-video.png" alt="Mobile video call" width="220"> |
+| ![Preferences](docs/screenshots/preferences.png) | ![Settings](docs/screenshots/settings.png) |
+
+| Video options | Switch to video request |
+|---|---|
+| ![Video menu](docs/screenshots/video-menu.png) | ![Video request dialog](docs/screenshots/video-request.png) |
+
+| Mobile chat | Mobile video call |
+|---|---|
+| <img src="docs/screenshots/mobile-chat.png" alt="Mobile chat" width="260"> | <img src="docs/screenshots/mobile-video.png" alt="Mobile video call" width="260"> |
 
 ## Features
 
+The full list, with which items have automated tests, is in the [changelog](CHANGELOG.md). The highlights:
+
 - **Consent first.** A modal dialog explains the risks and needs two ticked boxes (18+, and accepting the rules) before anything works. Esc and clicking outside do not dismiss it. Consent is remembered on your device and can be withdrawn from "Rules and privacy". The Node server also refuses to match anyone who has not consented.
-- **Text chat** with typing indicator, emoji picker, delivery status, safe link rendering and a 500-character limit.
-- **Video chat** peer to peer over WebRTC, with mute, camera off, camera switch, screen share, pop-out video, full screen, call timer and an in-call text panel.
+- **Smarter matching.** Optional interests and language are a *preference*: people who share them are matched first, and after a few seconds anyone will do, so nobody waits forever. Private rooms (invite link or code) match only the people who have the code. People you report are never matched with you again in that session.
+- **Text chat** with multi-line messages, formatting (**bold**, *italic*, `code`), emoji shortcodes, a categorised emoji picker, reactions, replies, read receipts, typing indicator, quick replies, icebreakers and slash commands (`/shrug /me /flip /roll /topic /clear /help`).
+- **Photos.** Compressed in your browser, encrypted like any message, and hidden on the receiving side until the person chooses to show them.
+- **Video chat** peer to peer over WebRTC with mute, camera off, camera and microphone pickers, screen share, pop-out video, full screen, call reactions, a connection quality badge, quality and fit settings, volume, mirror and self-view controls, and an in-call text panel. Optionally blur your partner's video until you choose to show it, or start calls with your camera off.
 - **Switch to video** from a text chat. The other person can accept or decline.
-- **End-to-end encrypted text.** Browsers agree a key with ECDH (P-256) and encrypt with AES-256-GCM. Sending is disabled until the key exists, so nothing is ever sent in plain text. A safety code lets two people confirm nobody is in the middle.
-- **Next, leave and report.** Skip to someone new, leave, or report someone (abuse, nudity, under 18, spam, other).
-- **Accessible and responsive.** Keyboard operable, visible focus, screen-reader labels, light and dark themes, reduced-motion support, and layouts for phones through desktop.
+- **End-to-end encrypted text.** Browsers agree a key with ECDH (P-256) and encrypt with AES-256-GCM. Sending is disabled until the key exists, so nothing is ever sent in plain text. A safety code lets two people confirm nobody is in the middle. Reactions, replies, photos, nicknames and read receipts travel inside the same encrypted envelope, so the relay never sees what kind of message it carries.
+- **Safety tools.** Report, next, leave, a panic button (`Alt+X`) that leaves and hides the chat instantly, a neutral tab title option, a strong-language filter, link warnings, and switches for typing indicators and read receipts.
+- **Yours to tune.** Settings for nickname, avatar, theme, accent colour, text size, reduced motion, sounds, notifications and more. All stored on your device only.
+- **Installable.** A web app manifest and a service worker give you an installable app with an offline shell. The service worker is network-first, so new releases always show up immediately.
+- **Accessible and responsive.** Keyboard operable, visible focus, screen-reader labels, light and dark themes, reduced-motion and high-contrast support, and layouts for phones through desktop.
 - **No third-party assets.** Fonts and icons are bundled. The page runs under a strict Content Security Policy.
 
-Keyboard shortcuts during a chat: `Alt+N` next person, `Alt+M` mute, `Alt+V` camera.
+Keyboard shortcuts: press `?` in the app. `Alt+N` next person, `Alt+M` mute, `Alt+V` camera, `Alt+R` report, `Alt+X` hide now.
 
 ## Deploy on GitHub Pages
 
@@ -99,7 +113,7 @@ The server serves the same `public/` folder, keeps matchmaking state in memory o
 ```js
 window.SECURECHAT_CONFIG = {
   transport: 'auto',                       // 'auto' | 'socket' | 'mqtt'
-  namespace: 'securechat-0x0806/v1',       // change this if you fork, so forks do not share a lobby
+  namespace: 'securechat-0x0806/v2',       // change this if you fork, so forks do not share a lobby
   brokers: ['wss://broker.hivemq.com:8884/mqtt', 'wss://broker.emqx.io:8084/mqtt'],
   iceServers: [{ urls: ['stun:stun.l.google.com:19302'] }]
 };
@@ -119,8 +133,9 @@ Optional URL parameters: `?ns=my-room` joins a private lobby (share the link wit
 | Is video encrypted? | Yes, WebRTC uses DTLS-SRTP between the two browsers. |
 | Does my partner see my IP address? | **In a video call, yes.** A direct WebRTC connection reveals it. Use a VPN if that matters. |
 | What does the server or broker see? | Your IP address (like any web server), connection IDs, who is paired with whom while chatting, and SDP call-setup data. The Node server logs report reasons and connection IDs, and stores nothing else. A public MQTT broker is run by a third party. |
-| Are reports reviewed? | The Node server writes them to its log. Serverless mode has no server to receive reports, so a report just moves you on. There are no moderators. |
-| Where is my data stored? | Only your consent flag, theme and sound preference are stored in your browser. Messages are never stored. |
+| Are reports reviewed? | The Node server writes them to its log and limits each person to 5 a minute. Serverless mode has no server to receive reports, so a report just moves you on. There are no moderators. |
+| Are photos private? | Photos are shrunk in your browser and sent inside the same encrypted envelope as text. The receiving browser hides them until the person chooses to show them. |
+| Where is my data stored? | Only your consent flag and settings (theme, nickname, interests and so on) are stored in your browser. The list of people you reported lives in session storage and disappears when the tab closes. Messages are never stored. |
 
 Other hardening: strict CSP with no inline script or style, messages are rendered as text (never as HTML), links open with `noopener noreferrer nofollow` and only for `http(s)`, oversized and malformed payloads are dropped, and a stranger's inbound traffic is rate-limited in serverless mode.
 
@@ -129,13 +144,14 @@ This is a hobby-scale project without moderation. Do not rely on it for anything
 ## Tests
 
 ```bash
-npm test                 # 16 server tests (node:test + socket.io-client), no browser needed
-npm run test:e2e         # 32 browser checks across both transports (needs Chromium)
+npm run check            # syntax-check every script
+npm test                 # 28 server and matching-rule tests (node:test + socket.io-client), no browser needed
+npm run test:e2e         # 62 browser checks across both transports (needs Chromium)
 npm run screenshots      # re-captures docs/screenshots
 node tests/e2e.js --url=https://0x0806.github.io/securechat/   # test a deployed site
 ```
 
-The end-to-end suite launches two real Chromium instances with fake camera and microphone devices and walks through consent, matching, encrypted chat in both directions, XSS probes, typing, emoji, upgrade to video (decline and accept), mic and camera controls, reporting, next, leaving, tab close, and video calls that must reach `connected` with video frames flowing. It runs against the Node server and against a static build served like a GitHub project page. Set `CHROMIUM_PATH` if your Chromium is not in a standard location. The serverless run uses a throwaway `?ns=` lobby, so it never touches real users.
+The end-to-end suite launches real Chromium instances with fake camera and microphone devices and walks through consent, matching, encrypted chat in both directions, XSS probes, formatting, slash commands, reactions, replies, read receipts, photos, nicknames, settings, private rooms, interest matching, blocking, the panic button, the offline banner, the installable app, upgrade to video (decline and accept), video call controls and extras, reporting, next, leaving, tab close, and video calls that must reach `connected` with video frames flowing. It also fails on console errors from any page. It runs against the Node server and against a static build served like a GitHub project page. Set `CHROMIUM_PATH` if your Chromium is not in a standard location. The serverless run uses a throwaway `?ns=` lobby, so it never touches real users.
 
 ## Project layout
 
@@ -146,9 +162,12 @@ public/
   styles.css        Design system (light + dark)
   app.js            UI, encryption, WebRTC calls
   transport.js      Socket.IO and serverless MQTT transports behind one event contract
+  match-rules.js    Matching rules shared by the server and the serverless transport
+  features.js       Settings, messaging extras, call extras, rooms, PWA registration
+  sw.js, manifest.webmanifest, icons/   Installable app and offline shell
   config.js         Runtime configuration
   fonts/, vendor/   Bricolage Grotesque, Instrument Sans, mqtt.js (all bundled)
-tests/              server.test.js and e2e.js
+tests/              server.test.js, matching.test.js and e2e.js
 docs/screenshots/   README images
 .github/workflows/  Pages deploy and CI
 ```

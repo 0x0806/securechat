@@ -9,7 +9,7 @@ let url;
 const clients = [];
 
 before(async () => {
-  ctx = createApp({ log: () => {}, iceServers: [{ urls: 'stun:example.test' }] });
+  ctx = createApp({ log: () => {}, iceServers: [{ urls: 'stun:example.test' }], maxConnectionsPerIp: 500 });
   await new Promise((r) => ctx.server.listen(0, '127.0.0.1', r));
   url = `http://127.0.0.1:${ctx.server.address().port}`;
 });
@@ -112,11 +112,11 @@ test('messages relay to partner only, are stripped of nothing, and are acked', a
   await never(a, 'message-received');
 });
 
-test('over-long and empty messages are handled', async () => {
+test('over-long and empty messages are handled (envelopes up to 150k chars)', async () => {
   const [a, b] = await pair();
   const got = once(b, 'message-received');
-  a.emit('send-message', { message: 'x'.repeat(10000) });
-  assert.equal((await got).message.length, 4000);
+  a.emit('send-message', { message: 'x'.repeat(200000) });
+  assert.equal((await got).message.length, 150000);
   a.emit('send-message', { message: '   ' });
   a.emit('send-message', { message: 42 });
   await never(b, 'message-received');
@@ -232,6 +232,29 @@ test('report is acknowledged and unknown reasons collapse to "other"', async () 
   const p = once(a, 'report-received');
   a.emit('report-user', { reason: '<script>' });
   await p;
+});
+
+test('stats endpoint reports online, waiting and chats', async () => {
+  const body = await (await fetch(`${url}/api/stats`)).json();
+  assert.ok(body.online >= 1);
+  assert.deepEqual(Object.keys(body.waiting).sort(), ['text', 'video']);
+  assert.equal(typeof body.chats, 'number');
+});
+
+test('static assets: fonts are immutable, scripts revalidate', async () => {
+  const font = await fetch(`${url}/fonts/bricolage-grotesque-latin-wght-normal.woff2`);
+  assert.match(font.headers.get('cache-control'), /immutable/);
+  const js = await fetch(`${url}/app.js`);
+  assert.equal(js.headers.get('cache-control'), 'no-cache');
+});
+
+test('more than 5 reports a minute are refused', async () => {
+  const [a] = await pair();
+  let refused = 0;
+  a.on('error-message', () => refused++);
+  for (let i = 0; i < 8; i++) a.emit('report-user', { reason: 'spam' });
+  await new Promise((r) => setTimeout(r, 400));
+  assert.equal(refused, 3);
 });
 
 test('online count is broadcast', async () => {

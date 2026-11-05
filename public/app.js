@@ -45,8 +45,11 @@
     screenStream: null, sharing: false,
     // misc
     isTyping: false, typingTimer: null, sound: store.get(SOUND_KEY) !== 'off', pending: new Map(), unread: 0,
-    baseTitle: document.title, audioCtx: null
+    baseTitle: document.title, audioCtx: null,
+    starting: false, nextLock: false, lastSendAt: 0, lastToast: '', lastToastAt: 0, noCrypto: false, noVideo: false
   };
+  const hooks = {};
+  const hook = (name, ...args) => { try { return hooks[name] ? hooks[name](...args) : undefined; } catch (err) { console.error(`hook ${name} failed`, err); return undefined; } };
 
   /* ------------------------------------------------------------------ utils */
   const show = (node, on) => node.classList.toggle('hidden', !on);
@@ -58,13 +61,23 @@
   const clock = (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   function toast(message, type = 'info') {
+    const now = Date.now();
+    if (message === S.lastToast && now - S.lastToastAt < 2000) return; // no duplicate spam
+    S.lastToast = message; S.lastToastAt = now;
     while (el.toasts.children.length >= 3) el.toasts.firstChild.remove();
     const t = document.createElement('div');
     t.className = `toast toast-${type}`;
     t.setAttribute('role', type === 'error' ? 'alert' : 'status');
     t.textContent = message;
+    t.title = 'Select to dismiss';
     el.toasts.appendChild(t);
-    setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 250); }, type === 'error' ? 6000 : 3800);
+    let timer;
+    const dismiss = () => { t.classList.add('out'); setTimeout(() => t.remove(), 250); };
+    const arm = () => { timer = setTimeout(dismiss, type === 'error' ? 7000 : 4200); };
+    t.addEventListener('mouseenter', () => clearTimeout(timer)); // hovering pauses the countdown
+    t.addEventListener('mouseleave', arm);
+    t.addEventListener('click', dismiss);
+    arm();
   }
 
   function beep(kind) {
@@ -88,7 +101,17 @@
   }
 
   /* ----------------------------------------------------------------- dialogs */
-  function openDialog(d) { if (!d.open) d.showModal(); }
+  function openDialog(d) {
+    if (d.open) return;
+    d._returnTo = document.activeElement;
+    d.showModal();
+  }
+  document.addEventListener('close', (e) => { // 'close' does not bubble, so listen in the capture phase
+    const d = e.target;
+    if (d && d.tagName === 'DIALOG' && d._returnTo && document.contains(d._returnTo) && d !== el.consentDialog) {
+      try { d._returnTo.focus({ preventScroll: true }); } catch { /* element gone */ }
+    }
+  }, true);
   function closeDialog(d) { if (d.open) d.close(); }
   $$('[data-close]').forEach((b) => b.addEventListener('click', () => closeDialog(document.getElementById(b.dataset.close))));
   $$('dialog').forEach((d) => {
@@ -130,10 +153,12 @@
   const hasConsent = () => { try { return JSON.parse(store.get(CONSENT_KEY)).v === 1; } catch { return false; } };
 
   function updateStartButtons() {
-    const ok = hasConsent() && S.connected;
-    el.startVideoBtn.disabled = !ok;
+    const ok = hasConsent() && S.connected && !S.noCrypto;
+    el.startVideoBtn.disabled = !ok || S.noVideo;
     el.startTextBtn.disabled = !ok;
-    el.consentHint.textContent = !hasConsent()
+    el.consentHint.textContent = S.noCrypto
+      ? 'This page needs a secure connection (HTTPS) so messages can be encrypted.'
+      : !hasConsent()
       ? 'Agree to the rules to start chatting.'
       : !S.connected
         ? 'Connecting… you can start in a moment.'
@@ -173,6 +198,7 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
     show(el.waitingScreen, name === 'waiting');
     show(el.sessionScreen, name === 'session');
     if (name !== 'session') show(el.safetyChip, false);
+    hook('screen', name);
   }
 
   /* ------------------------------------------------------------ messages UI */
@@ -196,15 +222,26 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
     });
   }
 
-  function addMessage({ text, own, ts, id }) {
+  /** data: { text | render(container), own, ts, id, reply } */
+  function addMessage(data) {
+    const { text, own, ts, id } = data;
     const nearBottom = el.messages.scrollHeight - el.messages.scrollTop - el.messages.clientHeight < 120;
     const wrap = document.createElement('div');
     wrap.className = `msg ${own ? 'own' : 'them'}`;
-    const body = document.createElement('p');
-    linkify(text, body);
+    if (id) wrap.dataset.mid = id;
+    let body;
+    if (data.render) {
+      body = document.createElement('div');
+      body.className = 'media';
+      data.render(body);
+    } else {
+      body = document.createElement('p');
+      if (!hook('format', text, body)) linkify(text, body);
+    }
     const meta = document.createElement('span');
     meta.className = 'meta';
     const time = document.createElement('time');
+    time.dateTime = new Date(ts).toISOString();
     time.textContent = clock(ts);
     meta.appendChild(time);
     wrap.append(body, meta);
@@ -216,8 +253,11 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
       if (id) S.pending.set(id, st);
     }
     el.messages.appendChild(wrap);
+    while (el.messages.children.length > 400) el.messages.firstElementChild.remove(); // bound memory in very long chats
+    hook('message', { wrap, body, meta, data });
     if (own || nearBottom) scrollDown(true);
     else show(el.toBottom, true);
+    return wrap;
   }
 
   function scrollDown(force) {
@@ -234,6 +274,7 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
     el.sendBtn.disabled = !enabled;
     el.emojiBtn.disabled = !enabled;
     el.messageInput.placeholder = placeholder;
+    hook('composerState', enabled);
   }
 
   function updateSessionChrome() {
@@ -284,6 +325,7 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
       updateSessionChrome();
       addSystem('Messages are end-to-end encrypted. Select the lock at the top to compare safety codes.');
       if (S.screen === 'session') el.messageInput.focus({ preventScroll: true });
+      hook('keyReady');
     } catch (err) {
       console.error('Key exchange failed', err);
       addSystem('The other person sent an invalid encryption key. Press Next to try someone else.');
@@ -308,24 +350,41 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
   });
 
   /* --------------------------------------------------------------- sending */
+  /** Everything sent to the partner is a typed JSON envelope inside the AES-GCM payload, so the relay never sees types or metadata. */
+  async function sendEnvelope(env) {
+    const id = env.m || uid();
+    S.transport.emit('send-message', { message: await encrypt(JSON.stringify(env)), id });
+    return id;
+  }
+
   el.composer.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const text = el.messageInput.value.trim();
+    let text = el.messageInput.value.trim();
     if (!text || !S.aes || S.ended) return;
+    const out = hook('beforeSend', text);
+    if (out && out.cancel) { el.messageInput.value = ''; hook('inputChanged'); return; }
+    if (out && typeof out.text === 'string') text = out.text;
+    const now = Date.now();
     const id = uid();
+    const reply = hook('takeReply') || null;
+    const env = { t: 'text', m: id, x: text };
+    if (reply) env.r = reply;
     el.messageInput.value = '';
+    hook('inputChanged');
     stopTyping();
-    addMessage({ text, own: true, ts: Date.now(), id });
+    addMessage({ text, own: true, ts: now, id, reply });
+    hook('sent', env);
     try {
-      S.transport.emit('send-message', { message: await encrypt(text), id });
+      await sendEnvelope(env);
     } catch (err) {
       console.error(err);
       const st = S.pending.get(id);
-      if (st) st.textContent = 'Not sent';
+      if (st) { st.textContent = 'Not sent'; hook('failed', id, env); }
     }
   });
 
   function startTyping() {
+    if (hook('typingOff')) return;
     if (!S.isTyping) { S.isTyping = true; S.transport.emit('typing-start'); }
     clearTimeout(S.typingTimer);
     S.typingTimer = setTimeout(stopTyping, 1800);
@@ -334,7 +393,14 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
     clearTimeout(S.typingTimer);
     if (S.isTyping) { S.isTyping = false; S.transport.emit('typing-stop'); }
   }
-  el.messageInput.addEventListener('input', () => { if (el.messageInput.value) startTyping(); else stopTyping(); });
+  el.messageInput.addEventListener('input', () => {
+    hook('inputChanged');
+    if (el.messageInput.value) startTyping(); else stopTyping();
+  });
+  el.messageInput.addEventListener('keydown', (e) => {
+    // Enter sends; Shift+Enter makes a new line; Enter while composing (IME) must not send.
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); el.composer.requestSubmit(); }
+  });
   el.messageInput.addEventListener('blur', stopTyping);
 
   /* ------------------------------------------------------------------ emoji */
@@ -384,6 +450,10 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
     }
     el.localVideo.srcObject = S.localStream;
     el.previewVideo.srcObject = S.localStream;
+    S.localStream.getTracks().forEach((track) => track.addEventListener('ended', () => {
+      if (S.localStream && !S.sharing) { toast(`Your ${track.kind === 'video' ? 'camera' : 'microphone'} was disconnected.`, 'error'); syncMediaButtons(); }
+    }));
+    hook('media', S.localStream);
     const hasVideo = S.localStream.getVideoTracks().length > 0;
     el.camBtn.disabled = !hasVideo;
     el.micBtn.disabled = S.localStream.getAudioTracks().length === 0;
@@ -463,7 +533,7 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
     el.shareBtn.setAttribute('aria-pressed', 'false');
     if (restore && S.localStream) {
       const cam = S.localStream.getVideoTracks()[0];
-      const sender = S.pc && S.pc.getSenders().find((s) => s.track === null || (s.track && s.track.kind === 'video'));
+      const sender = S.pc && S.pc.getSenders().find((s) => s.track && s.track.kind === 'video');
       if (cam && sender) sender.replaceTrack(cam).catch(() => {});
       el.localVideo.srcObject = S.localStream;
     }
@@ -477,8 +547,9 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
     pc.ontrack = (e) => {
       if (!e.streams[0]) return;
       el.remoteVideo.srcObject = e.streams[0];
-      el.remoteVideo.play().catch(() => {});
+      el.remoteVideo.play().catch(() => hook('playBlocked'));
       show(el.remoteWait, false);
+      hook('remoteTrack', e.streams[0]);
     };
     pc.onconnectionstatechange = () => {
       if (S.pc !== pc) return;
@@ -519,6 +590,7 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
     el.remoteWaitText.textContent = 'Connecting video…';
     S.asking = false;
     updateSessionChrome();
+    hook('callStart');
     S.iReady = true;
     S.transport.emit('media-ready');
     maybeOffer();
@@ -564,6 +636,7 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
     S.iReady = false; S.partnerReady = false; S.offered = false; S.pendingIce = []; S.restarts = 0;
     if (!keepLocal) stopLocalMedia();
     if (!silent) { el.sessionScreen.dataset.call = 'off'; }
+    hook('callEnd');
     updateSessionChrome();
   }
 
@@ -583,20 +656,30 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
     el.partnerStatus.textContent = 'Connected';
     el.partnerStatus.classList.remove('gone');
     el.sessionScreen.dataset.call = 'off';
+    hook('reset');
   }
+
+  const findPayload = (mode) => ({ chatMode: mode, consent: true, ...(hook('prefs') || {}) });
 
   async function startSearch(mode) {
     if (!hasConsent()) return openDialog(el.consentDialog);
     if (!S.connected) return toast('Not connected yet. Try again in a moment.', 'error');
-    S.mode = mode;
-    if (mode === 'video') {
-      try { await acquireMedia(); } catch (e) { toast(mediaError(e), 'error'); return; }
+    if (S.starting) return; // ignore double clicks while the camera prompt is open
+    S.starting = true;
+    try {
+      S.mode = mode;
+      if (mode === 'video') {
+        try { await acquireMedia(); } catch (e) { toast(mediaError(e), 'error'); return; }
+        if (!hasConsent()) { stopLocalMedia(); return; }
+      }
+      el.previewVideo.parentElement.classList.toggle('live', mode === 'video');
+      el.waitingSub.textContent = mode === 'video' ? 'Waiting for someone who wants a video chat.' : 'Waiting for someone who wants a text chat.';
+      showScreen('waiting');
+      el.cancelBtn.focus();
+      S.transport.emit('find-partner', findPayload(mode));
+    } finally {
+      S.starting = false;
     }
-    el.previewVideo.parentElement.classList.toggle('live', mode === 'video');
-    el.waitingSub.textContent = mode === 'video' ? 'Waiting for someone who wants a video chat.' : 'Waiting for someone who wants a text chat.';
-    showScreen('waiting');
-    el.cancelBtn.focus();
-    S.transport.emit('find-partner', { chatMode: mode, consent: true });
   }
 
   function leaveChat({ keepLocal }) {
@@ -616,6 +699,9 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
   }
 
   function nextPartner() {
+    if (S.nextLock) return;
+    S.nextLock = true;
+    setTimeout(() => { S.nextLock = false; }, 700);
     leaveChat({ keepLocal: S.mode === 'video' });
     startSearch(S.mode);
   }
@@ -632,7 +718,7 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
       el.sessionScreen.dataset.call = 'on';
       beginCall();
     }
-    document.title = S.baseTitle;
+    hook('partnerFound', d);
   }
 
   function onPartnerLeft() {
@@ -648,6 +734,7 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
     beep('left');
     updateSessionChrome();
     el.endedBar.querySelector('[data-action="next"]').focus();
+    hook('partnerLeft');
   }
 
   /* -------------------------------------------------------- transport events */
@@ -659,7 +746,7 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
       el.onlineText.textContent = '1 online';
       if (!S.everConnected) S.everConnected = true;
       else toast('Reconnected', 'success');
-      if (S.screen === 'waiting' && t.kind === 'socket') t.emit('find-partner', { chatMode: S.mode, consent: true });
+      if (S.screen === 'waiting' && t.kind === 'socket') t.emit('find-partner', findPayload(S.mode));
       updateStartButtons();
     });
     t.on('disconnect', () => {
@@ -673,6 +760,7 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
     t.on('online-count', (n) => { if (S.connected) el.onlineText.textContent = `${n} online`; });
     t.on('consent-required', () => { openDialog(el.consentDialog); showScreen('welcome'); });
     t.on('error-message', (d) => toast((d && d.message) || 'Something went wrong.', 'error'));
+    t.on('server-shutdown', () => toast('The server is restarting. You will reconnect automatically.', 'info'));
     t.on('rate-limited', (d) => toast((d && d.message) || 'Slow down a little.', 'info'));
     t.on('waiting-for-partner', () => { if (S.screen !== 'waiting') showScreen('waiting'); });
     t.on('partner-found', onPartnerFound);
@@ -682,12 +770,19 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
 
     t.on('message-received', async (d) => {
       if (!S.aes || typeof d.message !== 'string') return;
-      let text;
-      try { text = await decrypt(d.message); } catch { addSystem('A message could not be decrypted and was dropped.'); return; }
+      let plain;
+      try { plain = await decrypt(d.message); } catch { addSystem('A message could not be decrypted and was dropped.'); return; }
+      let env = null;
+      try { env = JSON.parse(plain); } catch { /* older clients sent bare text */ }
+      if (!env || typeof env !== 'object' || typeof env.t !== 'string') env = { t: 'text', x: plain, m: d.id };
+      if (env.t !== 'text') { hook('envelope', env, d); return; }
+      if (typeof env.x !== 'string') return;
       show(el.typing, false);
-      addMessage({ text, own: false, ts: d.timestamp || Date.now() });
+      const text = env.x.slice(0, 2000);
+      addMessage({ text, own: false, ts: d.timestamp || Date.now(), id: typeof env.m === 'string' ? env.m.slice(0, 64) : undefined, reply: env.r });
       beep('message');
-      if (document.hidden) { S.unread += 1; document.title = `(${S.unread}) ${S.baseTitle}`; }
+      if (document.hidden) S.unread += 1;
+      hook('incoming', env);
     });
     t.on('message-delivered', (d) => {
       const st = d && S.pending.get(d.id);
@@ -737,6 +832,12 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
       else S.pendingIce.push(d.candidate);
     });
     t.on('call-ended', () => {
+      if (S.mode !== 'text') { // partner could not start their camera: keep the chat usable
+        endCall({ keepLocal: true, silent: true });
+        show(el.remoteWait, true);
+        el.remoteWaitText.textContent = 'Your partner could not start video. You can keep chatting, or press Next.';
+        return;
+      }
       if (S.mode === 'text') {
         endCall({ keepLocal: false });
         S.asking = false;
@@ -766,6 +867,7 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
     e.preventDefault();
     const reason = new FormData(el.reportForm).get('reason') || 'other';
     S.transport.emit('report-user', { reason });
+    hook('reported', S.partnerId);
     closeDialog(el.reportDialog);
     nextPartner();
   });
@@ -809,7 +911,8 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
   el.cancelBtn.addEventListener('click', goHome);
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeEmoji();
+    if (e.key === 'Escape' && !el.emojiPop.classList.contains('hidden')) { closeEmoji(); el.emojiBtn.focus(); }
+    if (hook('key', e)) return;
     if (!e.altKey || S.screen !== 'session') return;
     const k = e.key.toLowerCase();
     if (k === 'n') { e.preventDefault(); nextPartner(); }
@@ -817,10 +920,14 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
     if (k === 'v') { e.preventDefault(); toggleTrack('video'); }
   });
   window.addEventListener('focus', () => { S.unread = 0; document.title = S.baseTitle; });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { S.unread = 0; document.title = S.baseTitle; hook('visible'); } });
   window.addEventListener('pagehide', () => { stopLocalMedia(); });
 
   /* -------------------------------------------------------------------- boot */
   async function boot() {
+    S.noCrypto = !(window.crypto && window.crypto.subtle);
+    S.noVideo = !(window.RTCPeerConnection && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    if (S.noVideo) el.startVideoBtn.title = 'Video needs a browser with camera support and a secure (HTTPS) connection.';
     updateStartButtons();
     syncConsentButton();
     if (!hasConsent()) openDialog(el.consentDialog);
@@ -850,5 +957,11 @@ el.consentDialog.addEventListener('close', () => { if (!hasConsent()) setTimeout
     }
     window.__securechat = { state: S };
   }
+  window.SC = {
+    S, el, hooks, store, toast, show, setIcon, openDialog, closeDialog, uid, clock, b64, hex, beep,
+    addSystem, addMessage, sendEnvelope, startSearch, goHome, nextPartner, applyTheme, acquireMedia,
+    syncMediaButtons, scrollDown, startTyping, stopTyping, hasConsent, mediaError, updateSessionChrome, setComposer,
+    toggleTrack, updateStartButtons, stopLocalMedia, THEME_KEY, SOUND_KEY
+  };
   boot();
 })();

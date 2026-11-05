@@ -11,6 +11,10 @@
   <meta property="og:title" content="SecureChat – anonymous video and text chat">
   <meta property="og:description" content="Random text and video chat with no account and no history.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="color-scheme" content="light dark">
+  <meta name="mobile-web-app-capable" content="yes">
   <link rel="preload" href="fonts/bricolage-grotesque-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' ws: wss: https:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
   <link rel="stylesheet" href="styles.css">
@@ -42,10 +46,20 @@
       <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
       <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
       <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6"/></symbol>
+      <symbol id="i-gear" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+      <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 6.1A9.7 9.7 0 0 1 12 6c5 0 9 6 9 6a15 15 0 0 1-3.1 3.6M6.5 7.6C4 9.4 3 12 3 12s4 6 9 6c1.4 0 2.700-.3 3.800-.8M9.900 9.900a3 3 0 0 0 4.200 4.200"/></symbol>
+      <symbol id="i-clip" viewBox="0 0 24 24"><path d="M20 11.500l-8 8a5 5 0 0 1-7-7l9-9a3.500 3.500 0 0 1 5 5l-9 9a2 2 0 0 1-3-3l8-8"/></symbol>
+      <symbol id="i-reply" viewBox="0 0 24 24"><path d="M9 7 4 12l5 5M4 12h10a6 6 0 0 1 6 6v1"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+      <symbol id="i-more" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01"/></symbol>
+      <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-8-5-8-11a4.500 4.500 0 0 1 8-2.500A4.500 4.500 0 0 1 20 9c0 6-8 11-8 11z"/></symbol>
+      <symbol id="i-retry" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 3-6.200M4 4v5h5"/></symbol>
+      <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></symbol>
       <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
     </defs>
   </svg>
 
+  <noscript><p class="noscript">SecureChat needs JavaScript to run. Please enable it and reload.</p></noscript>
   <a class="skip-link" href="#main">Skip to content</a>
 
   <div class="app" id="app" data-screen="welcome">
@@ -59,6 +73,12 @@
           <svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg><span>Encrypted</span>
         </button>
         <span class="chip" id="onlineChip" role="status"><span class="dot" aria-hidden="true"></span><span id="onlineText">Connecting…</span></span>
+        <button class="icon-btn" id="panicBtn" type="button" aria-label="Leave and hide the chat now (Alt+X)" title="Hide now (Alt+X)">
+          <svg class="ico" aria-hidden="true"><use href="#i-eye-off"/></svg>
+        </button>
+        <button class="icon-btn" id="settingsBtn" type="button" aria-label="Settings" title="Settings" aria-haspopup="dialog">
+          <svg class="ico" aria-hidden="true"><use href="#i-gear"/></svg>
+        </button>
         <button class="icon-btn" id="soundBtn" type="button" aria-pressed="true" aria-label="Sounds on" title="Sounds">
           <svg class="ico" aria-hidden="true"><use href="#i-volume"/></svg>
         </button>
@@ -68,6 +88,7 @@
       </div>
     </header>
 
+    <div class="banner hidden" id="netBanner" role="status">You are offline. Chat will resume when your connection returns.</div>
     <main id="main" tabindex="-1">
       <!-- Welcome -->
       <section class="welcome" id="welcomeScreen" aria-labelledby="welcomeTitle">
@@ -83,6 +104,40 @@
             </button>
           </div>
           <p class="fine" id="consentHint">You must be 18 or older. Camera access is only requested for video chat.</p>
+          <div class="roombanner hidden" id="roomBanner" role="status">
+            <svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg>
+            <span>Private room <strong id="roomName"></strong>: only people with this code can match with you.</span>
+            <button class="btn btn-ghost btn-sm" type="button" id="leaveRoomBtn">Leave room</button>
+          </div>
+          <details class="prefs" id="prefs">
+            <summary>Match preferences and private rooms</summary>
+            <div class="prefs-body">
+              <div class="field">
+                <label for="interestsInput">Interests</label>
+                <div class="chips" id="interestChips"></div>
+                <input id="interestsInput" type="text" maxlength="24" placeholder="Type an interest and press Enter" autocomplete="off">
+                <p class="hint">Up to 5. You are matched with people who share one first. If nobody does, you are matched with anyone after a few seconds.</p>
+              </div>
+              <div class="field">
+                <label for="langSelect">Language</label>
+                <select id="langSelect">
+                  <option value="any">Any language</option><option value="en">English</option><option value="es">Español</option>
+                  <option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option>
+                  <option value="hi">हिन्दी</option><option value="ar">العربية</option><option value="zh">中文</option><option value="ja">日本語</option>
+                  <option value="ru">Русский</option><option value="tr">Türkçe</option><option value="it">Italiano</option>
+                </select>
+              </div>
+              <div class="field">
+                <span class="label">Chat with a friend</span>
+                <div class="row">
+                  <button class="btn btn-secondary btn-sm" type="button" id="inviteBtn">Create invite link</button>
+                  <input id="roomCodeInput" type="text" maxlength="24" placeholder="Have a code?" aria-label="Private room code" autocomplete="off">
+                  <button class="btn btn-ghost btn-sm" type="button" id="joinRoomBtn">Join</button>
+                </div>
+              </div>
+              <button class="btn btn-ghost btn-sm" type="button" id="testCamBtn"><svg class="ico" aria-hidden="true"><use href="#i-video"/></svg>Test camera and microphone</button>
+            </div>
+          </details>
           <ul class="facts">
             <li><svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg><span><strong>Private by default.</strong> Messages are encrypted in your browser before they leave it.</span></li>
             <li><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg><span><strong>Nothing to sign up for.</strong> You are never asked for a name, email or phone number.</span></li>
@@ -107,6 +162,9 @@
         </div>
         <h2 id="waitingTitle">Looking for someone…</h2>
         <p class="lede" id="waitingSub">Waiting for another person who wants a text chat.</p>
+        <p class="wait-timer" id="waitTimer" aria-live="off">0:00</p>
+        <p class="wait-tip" id="waitTip"></p>
+        <p class="wait-hint hidden" id="waitHint" role="status"></p>
         <button class="btn btn-secondary" id="cancelBtn" type="button">Cancel</button>
       </section>
 
@@ -115,9 +173,26 @@
         <div class="stage" id="stage">
           <div class="remote">
             <video id="remoteVideo" autoplay playsinline></video>
+            <button class="veil hidden" id="blurVeil" type="button">Partner’s video is blurred. Show it</button>
+            <button class="veil hidden" id="playVeil" type="button">Tap to play the video</button>
             <div class="remote-wait" id="remoteWait"><span class="spinner" aria-hidden="true"></span><span id="remoteWaitText">Connecting video…</span></div>
           </div>
-          <div class="local"><video id="localVideo" muted autoplay playsinline></video></div>
+          <div class="local" id="localBox" role="button" tabindex="0" aria-label="Your video. Select to move it to another corner"><video id="localVideo" muted autoplay playsinline></video></div>
+          <div class="net hidden" id="netBadge" role="status" aria-label="Connection quality"><span class="dot" aria-hidden="true"></span><span id="netText">Checking…</span></div>
+          <div class="react-float" id="reactFloat" aria-hidden="true"></div>
+          <div class="react-bar hidden" id="reactBar" role="group" aria-label="Send a reaction"></div>
+          <div class="stage-menu hidden" id="stageMenu" role="group" aria-label="Video options">
+            <label class="row-ctl">Volume <input type="range" id="volRange" min="0" max="1" step="0.05" value="1" aria-label="Partner volume"></label>
+            <label class="row-ctl">Quality
+              <select id="qualitySel" aria-label="Video quality"><option value="low">Data saver</option><option value="standard" selected>Standard</option><option value="hd">High</option></select>
+            </label>
+            <label class="row-ctl">Camera <select id="camSel" aria-label="Camera"></select></label>
+            <label class="row-ctl">Microphone <select id="micSel" aria-label="Microphone"></select></label>
+            <label class="check-sm"><input type="checkbox" id="mirrorChk" checked> Mirror my video</label>
+            <label class="check-sm"><input type="checkbox" id="selfChk" checked> Show my video</label>
+            <label class="check-sm"><input type="checkbox" id="blurChk"> Blur partner’s video</label>
+            <button class="btn btn-ghost btn-sm" type="button" id="fitBtn">Fit: fill screen</button>
+          </div>
           <div class="call-timer" id="callTimer" role="timer" aria-label="Call length">00:00</div>
           <div class="controls" role="toolbar" aria-label="Call controls">
             <button class="ctl" id="micBtn" type="button" data-action="toggle-mic" aria-pressed="false" aria-label="Mute microphone" title="Mute microphone (Alt+M)"><svg class="ico" aria-hidden="true"><use href="#i-mic"/></svg></button>
@@ -125,6 +200,8 @@
             <button class="ctl hidden" id="flipBtn" type="button" data-action="switch-camera" aria-label="Switch camera" title="Switch camera"><svg class="ico" aria-hidden="true"><use href="#i-flip"/></svg></button>
             <button class="ctl hidden" id="shareBtn" type="button" data-action="share-screen" aria-pressed="false" aria-label="Share your screen" title="Share your screen"><svg class="ico" aria-hidden="true"><use href="#i-screen"/></svg></button>
             <button class="ctl hidden" id="pipBtn" type="button" data-action="pip" aria-label="Pop out video" title="Pop out video"><svg class="ico" aria-hidden="true"><use href="#i-pip"/></svg></button>
+            <button class="ctl" id="reactBtn" type="button" data-action="react" aria-label="Send a reaction" aria-expanded="false" title="Send a reaction"><svg class="ico" aria-hidden="true"><use href="#i-heart"/></svg></button>
+            <button class="ctl" id="moreBtn" type="button" data-action="more" aria-label="More video options" aria-expanded="false" title="More options"><svg class="ico" aria-hidden="true"><use href="#i-more"/></svg></button>
             <button class="ctl" type="button" data-action="fullscreen" aria-label="Full screen" title="Full screen"><svg class="ico" aria-hidden="true"><use href="#i-expand"/></svg></button>
             <button class="ctl ctl-text-only hidden" id="stopVideoBtn" type="button" data-action="stop-video" aria-label="Stop video" title="Stop video"><svg class="ico" aria-hidden="true"><use href="#i-video-off"/></svg></button>
             <button class="ctl ctl-next" type="button" data-action="skip" aria-label="Next person" title="Next person (Alt+N)"><svg class="ico" aria-hidden="true"><use href="#i-skip"/></svg><span>Next</span></button>
@@ -149,10 +226,15 @@
           <button class="to-bottom hidden" id="toBottom" type="button" aria-label="Scroll to latest message"><svg class="ico" aria-hidden="true"><use href="#i-down"/></svg></button>
           <div class="typing hidden" id="typing" role="status"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>Stranger is typing</div>
 
+          <div class="quick hidden" id="quick" aria-label="Quick replies"></div>
+          <div class="reply-bar hidden" id="replyBar"><span id="replyText"></span><button class="icon-btn" type="button" id="replyCancel" aria-label="Cancel reply"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></div>
           <form class="composer" id="composer" autocomplete="off">
             <div class="emoji-pop hidden" id="emojiPop" role="listbox" aria-label="Emoji"></div>
             <button class="icon-btn" id="emojiBtn" type="button" aria-label="Insert emoji" aria-expanded="false"><svg class="ico" aria-hidden="true"><use href="#i-smile"/></svg></button>
-            <input id="messageInput" type="text" maxlength="500" placeholder="Securing this chat…" aria-label="Message" disabled>
+            <button class="icon-btn" id="attachBtn" type="button" aria-label="Send a photo" title="Send a photo" disabled><svg class="ico" aria-hidden="true"><use href="#i-clip"/></svg></button>
+            <input id="fileInput" class="sr-only" type="file" accept="image/*" aria-label="Choose a photo to send" tabindex="-1">
+            <textarea id="messageInput" rows="1" maxlength="500" placeholder="Securing this chat…" aria-label="Message" enterkeyhint="send" disabled></textarea>
+            <span class="counter hidden" id="counter" aria-hidden="true">0</span>
             <button class="btn btn-primary btn-send" id="sendBtn" type="submit" aria-label="Send message" disabled><svg class="ico" aria-hidden="true"><use href="#i-send"/></svg></button>
           </form>
           <div class="ended hidden" id="endedBar">
@@ -166,7 +248,7 @@
 
     <footer class="foot">
       <button class="link" type="button" id="rulesLink">Rules and privacy</button>
-      <a class="link" href="https://github.com/0x0806/securechat" target="_blank" rel="noopener noreferrer">Open source on GitHub</a>
+      <button class="link" type="button" id="shortcutsLink">Keyboard shortcuts</button>
     </footer>
   </div>
 
@@ -181,7 +263,7 @@
         <li>People you meet may say or show things you find upsetting or explicit.</li>
         <li>Text is encrypted end to end. In a video call your partner’s browser connects directly to yours, which lets them see your IP address.</li>
         <li>Never share your address, passwords, money or anything else you would regret. Do not use SecureChat for anything illegal, or to harass or record people.</li>
-        <li>This is a free, open-source project run without moderators, and you are responsible for what you do on it. You can report anyone.</li>
+        <li>There are no moderators, and you are responsible for what you do here. You can report anyone.</li>
       </ul>
       <label class="check"><input type="checkbox" id="ageCheck"><span>I am 18 years old or older.</span></label>
       <label class="check"><input type="checkbox" id="termsCheck"><span>I have read the rules above and accept the risks.</span></label>
@@ -252,8 +334,112 @@
     </form>
   </dialog>
 
+
+  <dialog id="settingsDialog" class="dialog" aria-labelledby="settingsTitle">
+    <div class="dialog-body">
+      <h2 id="settingsTitle">Settings</h2>
+      <p class="hint">Stored only on this device. Nothing here is sent to a server.</p>
+      <fieldset class="group"><legend>Profile</legend>
+        <label class="field-row">Nickname (optional)<input id="nickInput" type="text" maxlength="20" placeholder="Stranger" autocomplete="off"></label>
+        <div class="field-row">Avatar<div class="avatars" id="avatarPick" role="radiogroup" aria-label="Avatar"></div></div>
+        <p class="hint">Shared with your partner, encrypted, only during a chat.</p>
+      </fieldset>
+      <fieldset class="group"><legend>Appearance</legend>
+        <label class="field-row">Theme<select id="themeSel"><option value="system">Match my device</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
+        <div class="field-row">Accent<div class="swatches" id="accentPick" role="radiogroup" aria-label="Accent colour"></div></div>
+        <label class="field-row">Text size<select id="fontSel"><option value="sm">Small</option><option value="md">Medium</option><option value="lg">Large</option></select></label>
+        <label class="check-sm"><input type="checkbox" id="motionChk"> Reduce motion</label>
+        <label class="check-sm"><input type="checkbox" id="disguiseChk"> Use a neutral tab title (“Notes”)</label>
+      </fieldset>
+      <fieldset class="group"><legend>Chat</legend>
+        <label class="check-sm"><input type="checkbox" id="soundChk"> Sounds</label>
+        <label class="check-sm"><input type="checkbox" id="notifyChk"> Notify me of new messages when this tab is in the background</label>
+        <label class="check-sm"><input type="checkbox" id="vibrateChk"> Vibrate on new messages (phones)</label>
+        <label class="check-sm"><input type="checkbox" id="typingChk"> Let my partner see when I am typing</label>
+        <label class="check-sm"><input type="checkbox" id="receiptsChk"> Let my partner see when I have read a message</label>
+        <label class="check-sm"><input type="checkbox" id="autoNextChk"> Find someone new automatically when my partner leaves</label>
+        <label class="check-sm"><input type="checkbox" id="profanityChk"> Hide strong language in messages I receive</label>
+        <label class="check-sm"><input type="checkbox" id="blurImgChk"> Hide photos until I choose to show them</label>
+        <label class="check-sm"><input type="checkbox" id="linkWarnChk"> Ask before opening links</label>
+      </fieldset>
+      <fieldset class="group"><legend>Video</legend>
+        <label class="check-sm"><input type="checkbox" id="camOffChk"> Start calls with my camera off</label>
+        <label class="check-sm"><input type="checkbox" id="blurRemoteChk"> Blur my partner’s video until I choose to show it</label>
+      </fieldset>
+      <fieldset class="group"><legend>This session</legend>
+        <p id="statsText" class="hint">No chats yet.</p>
+        <button type="button" class="btn btn-ghost btn-sm" id="unblockBtn">Clear blocked people</button>
+      </fieldset>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost" id="installBtn">Install app</button>
+        <button type="button" class="btn btn-ghost" id="resetSettings">Reset settings</button>
+        <button type="button" class="btn btn-primary" data-close="settingsDialog">Done</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="shortcutsDialog" class="dialog dialog-sm" aria-labelledby="shortcutsTitle">
+    <div class="dialog-body">
+      <h2 id="shortcutsTitle">Keyboard shortcuts</h2>
+      <dl class="keys">
+        <dt><kbd>Enter</kbd></dt><dd>Send message</dd>
+        <dt><kbd>Shift</kbd> + <kbd>Enter</kbd></dt><dd>New line</dd>
+        <dt><kbd>Alt</kbd> + <kbd>N</kbd></dt><dd>Next person</dd>
+        <dt><kbd>Alt</kbd> + <kbd>M</kbd></dt><dd>Mute or unmute</dd>
+        <dt><kbd>Alt</kbd> + <kbd>V</kbd></dt><dd>Camera on or off</dd>
+        <dt><kbd>Alt</kbd> + <kbd>R</kbd></dt><dd>Report this person</dd>
+        <dt><kbd>Alt</kbd> + <kbd>X</kbd></dt><dd>Leave and hide the chat now</dd>
+        <dt><kbd>?</kbd></dt><dd>Show this list</dd>
+        <dt><kbd>Esc</kbd></dt><dd>Close menus and pickers</dd>
+      </dl>
+      <div class="dialog-actions"><button type="button" class="btn btn-primary" data-close="shortcutsDialog">Close</button></div>
+    </div>
+  </dialog>
+
+  <dialog id="inviteDialog" class="dialog dialog-sm" aria-labelledby="inviteTitle">
+    <div class="dialog-body">
+      <h2 id="inviteTitle">Invite a friend</h2>
+      <p>Send this link. Only people who open it can match with you, and you stay in that private room until you leave it.</p>
+      <input id="inviteLink" class="readonly" type="text" readonly aria-label="Invite link">
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-secondary" id="copyInvite">Copy link</button>
+        <button type="button" class="btn btn-primary" id="useInvite">Enter the room</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="testDialog" class="dialog" aria-labelledby="testTitle">
+    <div class="dialog-body">
+      <h2 id="testTitle">Test your camera and microphone</h2>
+      <video id="testVideo" class="test-video" muted autoplay playsinline></video>
+      <div class="meter" aria-hidden="true"><i id="testMeter"></i></div>
+      <p class="hint" id="testStatus">Starting…</p>
+      <label class="field-row">Camera <select id="testCam"></select></label>
+      <label class="field-row">Microphone <select id="testMic"></select></label>
+      <div class="dialog-actions"><button type="button" class="btn btn-primary" id="testDone">Done</button></div>
+    </div>
+  </dialog>
+
+  <dialog id="imageDialog" class="dialog dialog-img" aria-label="Photo">
+    <div class="dialog-body"><img id="imageBig" alt="Photo from your chat"><div class="dialog-actions"><button type="button" class="btn btn-primary" data-close="imageDialog">Close</button></div></div>
+  </dialog>
+
+  <dialog id="linkDialog" class="dialog dialog-sm" aria-labelledby="linkTitle">
+    <div class="dialog-body">
+      <h2 id="linkTitle">Open this link?</h2>
+      <p>Links from strangers can be unsafe. Only continue if you trust it.</p>
+      <p class="code-sm" id="linkUrl"></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost" data-close="linkDialog">Cancel</button>
+        <button type="button" class="btn btn-primary" id="linkOpen">Open link</button>
+      </div>
+    </div>
+  </dialog>
+
   <script src="config.js"></script>
+  <script src="match-rules.js"></script>
   <script src="transport.js"></script>
   <script src="app.js"></script>
+  <script src="features.js"></script>
 </body>
 </html>
