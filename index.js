@@ -1,330 +1,296 @@
+'use strict';
 
 const express = require('express');
 const http = require('http');
-const { Server } = require('socket.io');
 const path = require('path');
+const crypto = require('crypto');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
-const crypto = require('crypto');
+const { Server } = require('socket.io');
 
-const app = express();
-const server = http.createServer(app);
+const MODES = new Set(['text', 'video']);
+const MAX_MESSAGE_CHARS = 4000; // ciphertext is larger than the 500-char plaintext limit
+const MAX_SIGNAL_BYTES = 20000;
+const RATE_LIMIT = { events: 80, perMs: 2000 };
+const REPORT_REASONS = new Set(['abuse', 'nudity', 'spam', 'underage', 'other']);
 
-// Security: Add basic security headers
-app.disable('x-powered-by');
-
-// Suggestion 1: Trust Proxy for correct IP handling behind load balancers/proxies
-app.set('trust proxy', 1);
-
-// Suggestion 1: Add timestamps to logs
-const originalLog = console.log;
-console.log = (...args) => {
-  originalLog(`[${new Date().toISOString()}]`, ...args);
-};
-
-// Suggestion 1: Compression
-app.use(compression());
-
-// Suggestion 1: Use Helmet for security headers
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
-      fontSrc: ["'self'", "https://cdnjs.cloudflare.com"],
-      connectSrc: ["'self'"],
-      imgSrc: ["'self'", "data:"],
-      mediaSrc: ["'self'", "blob:"],
-    },
-  },
-}));
-
-// For production, restrict the origin to your frontend's domain
-const allowedOrigin = process.env.CORS_ORIGIN || "*";
-const io = new Server(server, {
-  cors: {
-    origin: allowedOrigin,
-    methods: ["GET", "POST"]
+/** Builds ICE server list from env so deployments can add TURN for strict NATs. */
+function buildIceServers(env = process.env) {
+  const servers = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
+  if (env.STUN_URLS) {
+    servers.length = 0;
+    servers.push({ urls: env.STUN_URLS.split(',').map((s) => s.trim()).filter(Boolean) });
   }
-});
-
-app.use(cors({ origin: allowedOrigin }));
-app.use(express.static('public'));
-
-// Store connected users and waiting queue
-const waitingUsers = new Map(); // Use Map for O(1) access and FIFO order
-const activeChats = new Map();
-const userSockets = new Map();
-const rateLimit = new Map();
-const spamFilter = new Map(); // Suggestion 2: Spam filter storage
-
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Suggestion 2: Log server stats periodically
-setInterval(() => {
-    console.log(`Stats: ${activeChats.size} active chats, ${waitingUsers.size} waiting users, ${userSockets.size} connected sockets.`);
-    // Suggestion 25: Broadcast online count
-    io.emit('online-count', userSockets.size);
-}, 60000);
-
-// Suggestion 4: Health Check
-app.get('/health', (req, res) => res.status(200).send('OK'));
-
-io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);  
-  io.emit('online-count', userSockets.size + 1); // Immediate update
-
-  // Security: Basic rate limiting to prevent spam
-  socket.use(([event, ...args], next) => {
-    const now = Date.now();
-    const limit = 10; // 10 events
-    const per = 2000; // per 2 seconds
-
-    let userData = rateLimit.get(socket.id);
-    if (!userData) {
-        userData = { count: 0, lastEvent: now };
-        rateLimit.set(socket.id, userData);
-    }
-
-    if (now - userData.lastEvent > per) {
-        userData.count = 1;
-        userData.lastEvent = now;
-    } else {
-        userData.count++;
-    }
-
-    if (userData.count > limit) {
-        console.warn(`Rate limit exceeded for socket ${socket.id} on event ${event}`);
-        return next(new Error('Rate limit exceeded. Please slow down.'));
-    }
-
-    next();
-  });
-  
-  socket.on('find-partner', (userData) => {
-    console.log('User looking for partner:', socket.id);
-    
-    // Fix: Remove user from waiting queue if they are already there to prevent self-matching
-    waitingUsers.delete(socket.id);
-
-    // NOTE: For a large-scale application, this in-memory user management
-    // would be replaced with a distributed store like Redis to allow for
-    // multiple server instances.
-    userSockets.set(socket.id, { ...userData, socketId: socket.id });
-
-    // Optimized matching logic: Single pass to find the best possible partner.
-    let partnerId = null;
-    let partnerData = null;
-
-    // Helper to validate socket
-    const isSocketValid = (sid) => {
-        const s = io.sockets.sockets.get(sid);
-        return s && s.connected;
-    };
-    
-    for (const [pid, pdata] of waitingUsers) {
-        if (!isSocketValid(pid)) {
-            waitingUsers.delete(pid); // Clean up stale entry
-            continue;
-        }
-        // Prioritize finding a partner with the same chat mode.
-        if (pdata.chatMode === userData.chatMode) {
-            partnerId = pid;
-            partnerData = pdata;
-            break; // Found the best match, no need to search further.
-        }
-    }
-
-    if (partnerId) {
-      // Match with waiting user
-      waitingUsers.delete(partnerId);
-      const partner = partnerData;
-
-      // Suggestion 3: Use UUID for room ID
-      const roomId = crypto.randomUUID();
-      
-      // Join both users to room
-      socket.join(roomId);
-      const partnerSocket = io.sockets.sockets.get(partner.socketId);
-      if (partnerSocket) partnerSocket.join(roomId);
-      
-      // Store active chat
-      activeChats.set(socket.id, { partnerId: partner.socketId, roomId, startTime: Date.now() });
-      activeChats.set(partner.socketId, { partnerId: socket.id, roomId, startTime: Date.now() });
-      
-      // Notify both users
-      socket.emit('partner-found', { partnerId: partner.socketId, roomId, partnerChatMode: partner.chatMode });
-      io.to(partner.socketId).emit('partner-found', { partnerId: socket.id, roomId, partnerChatMode: userSockets.get(socket.id).chatMode });
-      
-    } else {
-      // Add to waiting queue
-      waitingUsers.set(socket.id, userSockets.get(socket.id));
-      socket.emit('waiting-for-partner');
-    }
-  });
-
-  // Fix: Handle user cancelling the search
-  socket.on('leave-queue', () => {
-    waitingUsers.delete(socket.id);
-  });
-  
-  socket.on('send-message', (data) => {
-    const chat = activeChats.get(socket.id);
-    
-    // Security: Validate message content and length on server side
-    if (chat && data.message && typeof data.message === 'string') {
-      // Suggestion 14: Enforce max length
-      // Suggestion 3: Strip HTML tags server-side
-      const messageContent = data.message.trim().substring(0, 2000).replace(/<[^>]*>?/gm, '');
-      
-      if (messageContent.length > 0) {
-        // Suggestion 2: Simple Spam Filter
-        const lastMsg = spamFilter.get(socket.id);
-        if (lastMsg === messageContent) {
-            // Silently fail or notify user (optional)
-            return; 
-        }
-        spamFilter.set(socket.id, messageContent);
-        // Clear spam memory after 5 seconds to allow repeating later
-        setTimeout(() => spamFilter.delete(socket.id), 5000);
-
-        io.to(chat.roomId).emit('message-received', {
-          message: messageContent,
-          senderId: socket.id,
-          timestamp: Date.now(),
-          id: data.id // Pass back message ID for delivery confirmation
-        });
-      }
-    }
-  });
-
-  socket.on('exchange-key', (data) => {
-    const chat = activeChats.get(socket.id);
-    if (chat) {
-      io.to(chat.partnerId).emit('exchange-key', {
-        key: data.key,
-        senderId: socket.id
-      });
-    }
-  });
-  
-  socket.on('typing-start', () => {
-    const chat = activeChats.get(socket.id);
-    if (chat) {
-      io.to(chat.partnerId).emit('partner-typing', true);
-    }
-  });
-  
-  socket.on('typing-stop', () => {
-    const chat = activeChats.get(socket.id);
-    if (chat) {
-      io.to(chat.partnerId).emit('partner-typing', false);
-    }
-  });
-  
-  socket.on('skip-partner', () => {
-    handleDisconnection(socket.id);
-  });
-  
-  socket.on('offer', (data) => {
-    const chat = activeChats.get(socket.id);
-    if (chat && data.offer) {
-      io.to(chat.partnerId).emit('offer', { offer: data.offer, senderId: socket.id });
-    }
-  });
-  
-  socket.on('answer', (data) => {
-    const chat = activeChats.get(socket.id);
-    if (chat && data.answer) {
-      io.to(chat.partnerId).emit('answer', { answer: data.answer, senderId: socket.id });
-    }
-  });
-  
-  socket.on('ice-candidate', (data) => {
-    const chat = activeChats.get(socket.id);
-    if (chat && data.candidate) {
-      // Forwarding only to the partner in the active chat is the security measure.
-      io.to(chat.partnerId).emit('ice-candidate', { candidate: data.candidate, senderId: socket.id });
-    }
-  });
-  
-  socket.on('video-call-request', () => {
-    const chat = activeChats.get(socket.id);
-    if (chat) {
-      io.to(chat.partnerId).emit('video-call-request', { senderId: socket.id });
-    }
-  });
-  
-  socket.on('video-call-response', (data) => {
-    const chat = activeChats.get(socket.id);
-    if (chat) {
-      io.to(chat.partnerId).emit('video-call-response', { accepted: data.accepted, senderId: socket.id });
-    }
-  });
-  
-  // Suggestion 3: Report User Handler
-  socket.on('report-user', (data) => {
-    console.warn(`[REPORT] User ${socket.id} reported partner ${data.partnerId} for reason: ${data.reason || 'Unspecified'}`);
-    // In a real app, you would store this in a database and potentially ban the IP.
-  });
-
-  socket.on('disconnect', () => {
-    handleDisconnection(socket.id);
-  });
-});
-
-function handleDisconnection(socketId) {
-  // Clean up rate limit tracking
-  rateLimit.delete(socketId);
-  spamFilter.delete(socketId);
-
-  // Remove from waiting queue
-  waitingUsers.delete(socketId);
-  
-  // Handle active chat disconnection
-  const chat = activeChats.get(socketId);
-  if (chat) {
-    // Suggestion 2: Log Chat Duration
-    const duration = (Date.now() - chat.startTime) / 1000;
-    console.log(`Chat ended. Duration: ${duration}s`);
-
-    io.to(chat.partnerId).emit('partner-disconnected');
-    activeChats.delete(socketId);
-    activeChats.delete(chat.partnerId);
+  if (env.TURN_URL) {
+    servers.push({
+      urls: env.TURN_URL.split(',').map((s) => s.trim()).filter(Boolean),
+      username: env.TURN_USERNAME || '',
+      credential: env.TURN_CREDENTIAL || '',
+    });
   }
-  
-  userSockets.delete(socketId);
-  console.log('User disconnected:', socketId);
-  io.emit('online-count', Math.max(0, userSockets.size - 1));
+  return servers;
 }
 
-// Suggestion 3: Graceful Shutdown
-const gracefulShutdown = () => {
-  console.log('Received kill signal, shutting down gracefully');
-  server.close(() => {
-    console.log('Closed out remaining connections');
-    process.exit(0);
+function createApp(options = {}) {
+  const log = options.log || ((...a) => console.log(`[${new Date().toISOString()}]`, ...a));
+  const allowedOrigin = options.corsOrigin || process.env.CORS_ORIGIN || '*';
+  const iceServers = options.iceServers || buildIceServers();
+  const rematchCooldownMs = options.rematchCooldownMs ?? 30000;
+
+  const app = express();
+  const server = http.createServer(app);
+
+  app.disable('x-powered-by');
+  app.set('trust proxy', 1);
+  app.use(compression());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'"],
+          fontSrc: ["'self'"],
+          connectSrc: ["'self'", 'ws:', 'wss:'],
+          imgSrc: ["'self'", 'data:'],
+          mediaSrc: ["'self'", 'blob:'],
+          objectSrc: ["'none'"],
+          workerSrc: ["'self'", 'blob:'],
+          frameAncestors: ["'none'"],
+          // helmet's default adds upgrade-insecure-requests, which breaks plain-http localhost use
+          upgradeInsecureRequests: null,
+        },
+      },
+      permissionsPolicy: undefined,
+    })
+  );
+  app.use((req, res, next) => {
+    res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()');
+    next();
+  });
+  app.use(cors({ origin: allowedOrigin }));
+  app.use(express.static(path.join(__dirname, 'public')));
+
+  app.get('/health', (req, res) => res.status(200).send('OK'));
+  app.get('/api/ice-servers', (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.json({ iceServers });
+  });
+  app.use((req, res) => res.status(404).send('404 Not Found'));
+
+  const io = new Server(server, {
+    cors: { origin: allowedOrigin, methods: ['GET', 'POST'] },
+    maxHttpBufferSize: 64 * 1024,
   });
 
-  setTimeout(() => {
-    console.error('Could not close connections in time, forcefully shutting down');
-    process.exit(1);
-  }, 10000);
-};
+  /** socket.id -> { chatMode } for sockets waiting for a partner (insertion order = FIFO) */
+  const waiting = new Map();
+  /** socket.id -> { partnerId, roomId, startedAt } */
+  const chats = new Map();
+  /** socket.id -> { id, at } of the last partner, so a skip does not immediately rematch the same two people */
+  const lastPartner = new Map();
+  const rate = new Map();
+  const lastMessage = new Map(); // socket.id -> { text, at }
 
-process.on('SIGTERM', gracefulShutdown);
-process.on('SIGINT', gracefulShutdown);
+  const recentlyPaired = (a, b) => {
+    const now = Date.now();
+    return [[a, b], [b, a]].some(([x, y]) => {
+      const last = lastPartner.get(x);
+      return last && last.id === y && now - last.at < rematchCooldownMs;
+    });
+  };
 
-// Suggestion 6: 404 Handler
-app.use((req, res) => {
-  res.status(404).send('404 Not Found');
-});
+  const broadcastOnline = () => io.emit('online-count', io.engine.clientsCount);
 
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`SecureChat server running on port ${PORT}`);
-});
+  const isLive = (id) => {
+    const s = io.sockets.sockets.get(id);
+    return Boolean(s && s.connected);
+  };
+
+  /** Ends the chat (if any) for socketId, tells the partner, and leaves the room. */
+  function endChat(socketId, { notifyPartner = true } = {}) {
+    const chat = chats.get(socketId);
+    if (!chat) return null;
+    chats.delete(socketId);
+    chats.delete(chat.partnerId);
+    for (const id of [socketId, chat.partnerId]) {
+      io.sockets.sockets.get(id)?.leave(chat.roomId);
+    }
+    if (notifyPartner && isLive(chat.partnerId)) {
+      io.to(chat.partnerId).emit('partner-disconnected');
+    }
+    log(`chat ended after ${Math.round((Date.now() - chat.startedAt) / 1000)}s`);
+    return chat;
+  }
+
+  io.on('connection', (socket) => {
+    broadcastOnline();
+    socket.emit('online-count', io.engine.clientsCount);
+
+    // Per-socket flood control. Generous enough for ICE candidate bursts.
+    socket.use((packet, next) => {
+      const now = Date.now();
+      let bucket = rate.get(socket.id);
+      if (!bucket || now - bucket.start > RATE_LIMIT.perMs) {
+        bucket = { start: now, count: 0 };
+        rate.set(socket.id, bucket);
+      }
+      bucket.count += 1;
+      if (bucket.count > RATE_LIMIT.events) {
+        socket.emit('rate-limited', { message: 'You are sending too fast. Slow down.' });
+        return; // drop the packet
+      }
+      next();
+    });
+
+    const partnerOf = () => chats.get(socket.id);
+    const relay = (event, build) => (payload) => {
+      const chat = partnerOf();
+      if (!chat) return;
+      const out = build(payload || {});
+      if (out === null) return;
+      io.to(chat.partnerId).emit(event, { ...out, senderId: socket.id });
+    };
+    const sizeOk = (v) => {
+      try {
+        return JSON.stringify(v).length <= MAX_SIGNAL_BYTES;
+      } catch {
+        return false;
+      }
+    };
+
+    socket.on('find-partner', (data) => {
+      const info = data && typeof data === 'object' ? data : {};
+      if (info.consent !== true) {
+        socket.emit('consent-required');
+        return;
+      }
+      if (!MODES.has(info.chatMode)) {
+        socket.emit('error-message', { message: 'Unknown chat mode.' });
+        return;
+      }
+
+      endChat(socket.id); // a user searching again leaves any existing chat
+      waiting.delete(socket.id);
+
+      let partnerId = null;
+      for (const [id, entry] of waiting) {
+        if (!isLive(id)) {
+          waiting.delete(id);
+          continue;
+        }
+        if (entry.chatMode !== info.chatMode) continue;
+        if (recentlyPaired(socket.id, id)) continue;
+        partnerId = id;
+        break;
+      }
+
+      if (!partnerId) {
+        waiting.set(socket.id, { chatMode: info.chatMode });
+        socket.emit('waiting-for-partner');
+        return;
+      }
+
+      waiting.delete(partnerId);
+      const roomId = crypto.randomUUID();
+      const partnerSocket = io.sockets.sockets.get(partnerId);
+      socket.join(roomId);
+      partnerSocket.join(roomId);
+      const startedAt = Date.now();
+      chats.set(socket.id, { partnerId, roomId, startedAt });
+      chats.set(partnerId, { partnerId: socket.id, roomId, startedAt });
+      lastPartner.set(socket.id, { id: partnerId, at: startedAt });
+      lastPartner.set(partnerId, { id: socket.id, at: startedAt });
+      socket.emit('partner-found', { partnerId, roomId, chatMode: info.chatMode });
+      partnerSocket.emit('partner-found', { partnerId: socket.id, roomId, chatMode: info.chatMode });
+    });
+
+    socket.on('leave-queue', () => {
+      waiting.delete(socket.id);
+    });
+
+    socket.on('send-message', (data) => {
+      const chat = partnerOf();
+      if (!chat || !data || typeof data.message !== 'string') return;
+      const text = data.message.trim().slice(0, MAX_MESSAGE_CHARS);
+      if (!text) return;
+      const prev = lastMessage.get(socket.id);
+      const now = Date.now();
+      if (prev && prev.text === text && now - prev.at < 3000) return; // drop accidental double-sends
+      lastMessage.set(socket.id, { text, at: now });
+      const id = typeof data.id === 'string' ? data.id.slice(0, 64) : undefined;
+      // Only the partner receives the message; the sender gets an ack for delivery state.
+      io.to(chat.partnerId).emit('message-received', { message: text, senderId: socket.id, timestamp: now, id });
+      socket.emit('message-delivered', { id });
+    });
+
+    socket.on('exchange-key', (data) => {
+      const chat = partnerOf();
+      if (!chat || !data || typeof data.key !== 'object' || data.key === null || !sizeOk(data.key)) return;
+      io.to(chat.partnerId).emit('exchange-key', { key: data.key, senderId: socket.id });
+    });
+
+    socket.on('typing-start', relay('partner-typing', () => ({ typing: true })));
+    socket.on('typing-stop', relay('partner-typing', () => ({ typing: false })));
+
+    socket.on('offer', relay('offer', (d) => (d.offer && sizeOk(d.offer) ? { offer: d.offer } : null)));
+    socket.on('answer', relay('answer', (d) => (d.answer && sizeOk(d.answer) ? { answer: d.answer } : null)));
+    socket.on(
+      'ice-candidate',
+      relay('ice-candidate', (d) => (d.candidate && sizeOk(d.candidate) ? { candidate: d.candidate } : null))
+    );
+    socket.on('video-call-request', relay('video-call-request', () => ({})));
+    socket.on('video-call-response', relay('video-call-response', (d) => ({ accepted: d.accepted === true })));
+    socket.on('media-ready', relay('media-ready', () => ({})));
+    socket.on('call-ended', relay('call-ended', () => ({})));
+
+    socket.on('report-user', (data) => {
+      const chat = partnerOf();
+      if (!chat) return;
+      const reason = REPORT_REASONS.has(data && data.reason) ? data.reason : 'other';
+      // Reports are logged by session-scoped socket id only; nothing else is stored.
+      log(`report: ${socket.id} reported ${chat.partnerId} (${reason})`);
+      socket.emit('report-received');
+    });
+
+    socket.on('skip-partner', () => {
+      endChat(socket.id);
+      waiting.delete(socket.id);
+    });
+
+    socket.on('disconnect', () => {
+      endChat(socket.id);
+      waiting.delete(socket.id);
+      rate.delete(socket.id);
+      lastMessage.delete(socket.id);
+      lastPartner.delete(socket.id);
+      broadcastOnline();
+    });
+  });
+
+  const stats = setInterval(() => {
+    log(`stats: ${chats.size / 2} chats, ${waiting.size} waiting, ${io.engine.clientsCount} connected`);
+  }, 60000);
+  stats.unref();
+
+  return { app, server, io, state: { waiting, chats }, close: () => clearInterval(stats) };
+}
+
+function start(port = process.env.PORT || 5000) {
+  const ctx = createApp();
+  ctx.server.listen(port, '0.0.0.0', () => {
+    console.log(`[${new Date().toISOString()}] SecureChat listening on port ${ctx.server.address().port}`);
+  });
+  const shutdown = () => {
+    ctx.io.close(() => process.exit(0));
+    setTimeout(() => process.exit(1), 10000).unref();
+  };
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+  return ctx;
+}
+
+if (require.main === module) start();
+
+module.exports = { createApp, buildIceServers, start };

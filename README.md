@@ -1,218 +1,160 @@
+# SecureChat
 
-# 🛡️ SecureChat - Anonymous Real-time Video & Text Chat Platform
+Anonymous random text and video chat that runs in the browser. There is no account, no database and no chat history.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js](https://img.shields.io/badge/Node.js-18%2B-green.svg)](https://nodejs.org/)
-[![Socket.IO](https://img.shields.io/badge/Socket.IO-4.8.1-blue.svg)](https://socket.io/)
-[![WebRTC](https://img.shields.io/badge/WebRTC-Enabled-orange.svg)](https://webrtc.org/)
-[![Replit](https://img.shields.io/badge/Deploy-Replit-667881.svg)](https://replit.com/)
+It works in two ways, and you can use either:
 
-> **Secure, Anonymous, Real-time Communication Platform** - Connect with strangers worldwide through encrypted video calls and instant messaging without compromising your privacy.
+- **On GitHub Pages (or any static host)**: fully serverless. People find each other and set up calls through a public MQTT broker, so there is nothing to run.
+- **With the bundled Node server**: Socket.IO matchmaking and relay, for people who want to host their own.
 
-## 🌟 Features
+**Live demo:** https://0x0806.github.io/securechat/
 
-### 🔒 **Privacy & Security**
-- **100% Anonymous** - No registration or personal information required
-- **End-to-End Encryption** - WebRTC peer-to-peer connections
-- **No Data Storage** - Messages are not stored on servers
-- **Secure Connections** - HTTPS/WSS protocols for all communications
+<p align="center">
+  <img src="docs/screenshots/welcome-light.png" alt="SecureChat welcome screen" width="860">
+</p>
 
-### 💬 **Communication Features**
-- **Real-time Text Chat** - Instant messaging with typing indicators
-- **HD Video Calls** - High-quality video communication
-- **Voice Calls** - Crystal clear audio conversations
-- **Smart Matching** - Automatic partner pairing system
-- **Quick Skip** - Easy partner switching functionality
+## Screenshots
 
-### 🎨 **User Experience**
-- **Responsive Design** - Works on desktop, tablet, and mobile
-- **Dark Theme** - Eye-friendly interface with glassmorphism design
-- **Real-time Notifications** - System alerts and status updates
-- **Intuitive Controls** - User-friendly interface with minimal learning curve
-- **Cross-Platform** - Compatible with all modern browsers
+These are real captures from the end-to-end test suite (two Chromium browsers talking to each other), not mock-ups.
 
-## 🚀 Live Demo
+| Consent gate | Waiting for a match |
+|---|---|
+| ![Consent dialog](docs/screenshots/consent.png) | ![Waiting screen with camera preview](docs/screenshots/waiting.png) |
 
-Experience SecureChat live: [**Try SecureChat Now**](https://securechat.replit.app) *(Deploy on Replit)*
+| Text chat | Dark theme |
+|---|---|
+| ![Text chat](docs/screenshots/text-chat.png) | ![Text chat, dark theme](docs/screenshots/text-chat-dark.png) |
 
-## 📱 Screenshots
+| Video call with chat | Safety code |
+|---|---|
+| ![Video call](docs/screenshots/video-call.png) | ![Safety code dialog](docs/screenshots/safety-code.png) |
 
-### Welcome Screen
-![Welcome Screen](https://via.placeholder.com/800x400/1a1a2e/ffffff?text=SecureChat+Welcome+Screen)
+| Switch to video request | Mobile |
+|---|---|
+| ![Video request dialog](docs/screenshots/video-request.png) | <img src="docs/screenshots/mobile-chat.png" alt="Mobile chat" width="220"> <img src="docs/screenshots/mobile-video.png" alt="Mobile video call" width="220"> |
 
-### Chat Interface
-![Chat Interface](https://via.placeholder.com/800x400/16213e/ffffff?text=SecureChat+Interface)
+## Features
 
-### Video Call
-![Video Call](https://via.placeholder.com/800x400/0f3460/ffffff?text=Video+Call+Interface)
+- **Consent first.** A modal dialog explains the risks and needs two ticked boxes (18+, and accepting the rules) before anything works. Esc and clicking outside do not dismiss it. Consent is remembered on your device and can be withdrawn from "Rules and privacy". The Node server also refuses to match anyone who has not consented.
+- **Text chat** with typing indicator, emoji picker, delivery status, safe link rendering and a 500-character limit.
+- **Video chat** peer to peer over WebRTC, with mute, camera off, camera switch, screen share, pop-out video, full screen, call timer and an in-call text panel.
+- **Switch to video** from a text chat. The other person can accept or decline.
+- **End-to-end encrypted text.** Browsers agree a key with ECDH (P-256) and encrypt with AES-256-GCM. Sending is disabled until the key exists, so nothing is ever sent in plain text. A safety code lets two people confirm nobody is in the middle.
+- **Next, leave and report.** Skip to someone new, leave, or report someone (abuse, nudity, under 18, spam, other).
+- **Accessible and responsive.** Keyboard operable, visible focus, screen-reader labels, light and dark themes, reduced-motion support, and layouts for phones through desktop.
+- **No third-party assets.** Fonts and icons are bundled. The page runs under a strict Content Security Policy.
 
-## 🛠️ Technology Stack
+Keyboard shortcuts during a chat: `Alt+N` next person, `Alt+M` mute, `Alt+V` camera.
 
-| Technology | Purpose | Version |
-|------------|---------|---------|
-| **Node.js** | Backend Runtime | 18+ |
-| **Express.js** | Web Framework | 5.1.0 |
-| **Socket.IO** | Real-time Communication | 4.8.1 |
-| **WebRTC** | Peer-to-peer Video/Audio | Native |
-| **HTML5** | Frontend Structure | Latest |
-| **CSS3** | Styling & Animations | Latest |
-| **JavaScript ES6+** | Client-side Logic | Latest |
+## Deploy on GitHub Pages
 
-## ⚡ Quick Start
+1. Fork or push this repo to GitHub.
+2. In **Settings → Pages**, set **Source** to **GitHub Actions**.
+3. Push to `main`. The workflow in `.github/workflows/pages.yml` publishes the `public/` folder.
 
-### Prerequisites
-- Node.js 18+ installed
-- Modern web browser with WebRTC support
-- Internet connection
+Your site is then at `https://<user>.github.io/<repo>/`. Camera access needs HTTPS, which Pages provides.
 
-### Installation
+In this mode the page detects that there is no Node server (`GET health` fails) and switches to serverless mode on its own. You can force it with `?transport=mqtt` or by setting `transport` in `public/config.js`.
+
+### How serverless mode works
+
+```mermaid
+flowchart LR
+  A[Browser A] -- hello / propose / accept --> B((Public MQTT brokers))
+  B --> C[Browser B]
+  A <-. WebRTC video and audio, direct .-> C
+  A -- encrypted chat + call setup --> B -- encrypted chat + call setup --> C
+```
+
+- Everyone waiting for a chat announces themselves on a lobby topic. The peer with the larger random ID proposes, the other accepts, and the pair continues on private per-session topics.
+- The app connects to **all** brokers in `config.js` at once, publishes to each, and de-duplicates what it receives, so it keeps working if one broker is down.
+- Chat and call-setup messages are acknowledged and re-sent a few times if the acknowledgement does not arrive.
+- Video and audio never touch the broker. They flow directly between the two browsers.
+- "Online" is an estimate based on recent heartbeats.
+
+## Run it yourself with the Node server
 
 ```bash
-# Clone the repository
 git clone https://github.com/0x0806/securechat.git
 cd securechat
-
-# Install dependencies
 npm install
-
-# Start the application
-npm start
+npm start            # http://localhost:5000 (set PORT to change)
 ```
 
-### Deploy on Replit
-1. Click [![Run on Replit](https://replit.com/badge/github/0x0806/securechat)](https://replit.com/@0x0806/securechat)
-2. Fork the project
-3. Click "Run" button
-4. Your SecureChat instance is live!
+Camera access works on `localhost` and on HTTPS sites only.
 
+| Variable | Purpose |
+|---|---|
+| `PORT` | Port to listen on (default `5000`) |
+| `CORS_ORIGIN` | Allowed origin for cross-origin use (default `*`) |
+| `STUN_URLS` | Comma-separated STUN URLs to replace the default Google STUN servers |
+| `TURN_URL`, `TURN_USERNAME`, `TURN_CREDENTIAL` | Add a TURN relay (see below) |
 
+The server serves the same `public/` folder, keeps matchmaking state in memory only, rate-limits each connection, validates every payload, and exposes `GET /health` and `GET /api/ice-servers`.
 
-## 🔧 Configuration
+## Configuration
 
-### Environment Variables
-```bash
-PORT=5000                   # Server port (default: 5000)
-NODE_ENV=production         # Environment mode
-```
+`public/config.js`:
 
-### WebRTC Configuration
-```javascript
-const configuration = {
-    iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
-    ]
+```js
+window.SECURECHAT_CONFIG = {
+  transport: 'auto',                       // 'auto' | 'socket' | 'mqtt'
+  namespace: 'securechat-0x0806/v1',       // change this if you fork, so forks do not share a lobby
+  brokers: ['wss://broker.hivemq.com:8884/mqtt', 'wss://broker.emqx.io:8084/mqtt'],
+  iceServers: [{ urls: ['stun:stun.l.google.com:19302'] }]
 };
 ```
 
-## 🎯 API Endpoints
+Optional URL parameters: `?ns=my-room` joins a private lobby (share the link with a friend and only people using it can match each other), `?transport=mqtt|socket`, `?cooldown=0` (milliseconds before the same two people can be paired again; default 30000).
 
-### Socket.IO Events
+**Video behind strict NATs** (some corporate and mobile networks) needs a TURN relay. Add one to `iceServers` in `config.js`, or set `TURN_URL` for the Node server. Without TURN, those users can chat by text but video may fail.
 
-| Event | Direction | Description |
-|-------|-----------|-------------|
-| `find-partner` | Client → Server | Request to find chat partner |
-| `partner-found` | Server → Client | Partner matching notification |
-| `send-message` | Client → Server | Send text message |
-| `message-received` | Server → Client | Receive text message |
-| `typing-start` | Client ↔ Server | Typing indicator start |
-| `typing-stop` | Client ↔ Server | Typing indicator stop |
-| `video-call-request` | Client ↔ Server | Initiate video call |
-| `offer` | Client ↔ Server | WebRTC offer exchange |
-| `answer` | Client ↔ Server | WebRTC answer exchange |
-| `ice-candidate` | Client ↔ Server | ICE candidate exchange |
+## Security and privacy, honestly
 
-## 🎨 Design System
+| Question | Answer |
+|---|---|
+| Is text end-to-end encrypted? | Yes: ECDH P-256 key agreement, AES-256-GCM per message, keys never leave the browser and are discarded when the chat ends. |
+| Can the relay read my text? | No. It only carries ciphertext. |
+| Can the relay impersonate my partner? | **It could try.** The public keys travel through the relay (the Node server, or the MQTT broker), so a malicious relay could swap them. Compare the **safety code** (lock icon) with your partner to rule this out. |
+| Is video encrypted? | Yes, WebRTC uses DTLS-SRTP between the two browsers. |
+| Does my partner see my IP address? | **In a video call, yes.** A direct WebRTC connection reveals it. Use a VPN if that matters. |
+| What does the server or broker see? | Your IP address (like any web server), connection IDs, who is paired with whom while chatting, and SDP call-setup data. The Node server logs report reasons and connection IDs, and stores nothing else. A public MQTT broker is run by a third party. |
+| Are reports reviewed? | The Node server writes them to its log. Serverless mode has no server to receive reports, so a report just moves you on. There are no moderators. |
+| Where is my data stored? | Only your consent flag, theme and sound preference are stored in your browser. Messages are never stored. |
 
-### Color Palette
-```css
---primary-bg: #0a0e27;        /* Deep space blue */
---secondary-bg: #1a1a2e;      /* Dark blue-gray */
---accent-color: #00d4ff;      /* Cyan accent */
---success-color: #00ff88;     /* Success green */
---warning-color: #ffaa00;     /* Warning orange */
---danger-color: #ff4757;      /* Error red */
-```
+Other hardening: strict CSP with no inline script or style, messages are rendered as text (never as HTML), links open with `noopener noreferrer nofollow` and only for `http(s)`, oversized and malformed payloads are dropped, and a stranger's inbound traffic is rate-limited in serverless mode.
 
-### Typography
-- **Primary Font**: System fonts for optimal performance
-- **Fallback**: Arial, Helvetica, sans-serif
-- **Icon Font**: Font Awesome 6.0.0
+This is a hobby-scale project without moderation. Do not rely on it for anything where you need guarantees.
 
-## 🔐 Security Features
+## Tests
 
-- **No Server-side Message Storage** - All messages are ephemeral
-- **WebRTC P2P Encryption** - Direct browser-to-browser communication
-- **No User Tracking** - Anonymous sessions without persistent identifiers
-- **CORS Protection** - Cross-origin resource sharing controls
-- **Rate Limiting** - Protection against spam and abuse
-
-## 📊 Performance Metrics
-
-- **Initial Load Time**: < 2 seconds
-- **Real-time Latency**: < 100ms
-- **Video Quality**: Up to 1080p HD
-- **Audio Quality**: 48kHz stereo
-- **Concurrent Users**: Scalable architecture
-- **Mobile Optimized**: 90+ Lighthouse score
-
-## 🌐 Browser Compatibility
-
-| Browser | Version | Support Level |
-|---------|---------|---------------|
-| Chrome | 60+ | ✅ Full Support |
-| Firefox | 55+ | ✅ Full Support |
-| Safari | 11+ | ✅ Full Support |
-| Edge | 79+ | ✅ Full Support |
-| Opera | 47+ | ✅ Full Support |
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-### Development Setup
 ```bash
-# Fork the repository
-git clone https://github.com/your-username/securechat.git
-
-# Create feature branch
-git checkout -b feature/amazing-feature
-
-# Make changes and commit
-git commit -m "Add amazing feature"
-
-# Push to branch
-git push origin feature/amazing-feature
-
-# Open Pull Request
+npm test                 # 16 server tests (node:test + socket.io-client), no browser needed
+npm run test:e2e         # 32 browser checks across both transports (needs Chromium)
+npm run screenshots      # re-captures docs/screenshots
+node tests/e2e.js --url=https://0x0806.github.io/securechat/   # test a deployed site
 ```
 
-## 📈 Roadmap
+The end-to-end suite launches two real Chromium instances with fake camera and microphone devices and walks through consent, matching, encrypted chat in both directions, XSS probes, typing, emoji, upgrade to video (decline and accept), mic and camera controls, reporting, next, leaving, tab close, and video calls that must reach `connected` with video frames flowing. It runs against the Node server and against a static build served like a GitHub project page. Set `CHROMIUM_PATH` if your Chromium is not in a standard location. The serverless run uses a throwaway `?ns=` lobby, so it never touches real users.
 
-- [ ] **Voice-only Mode** - Audio calls without video
-- [ ] **File Sharing** - Secure P2P file transfer
-- [ ] **Chat Rooms** - Multi-user chat functionality
-- [ ] **Mobile App** - Native iOS/Android applications
-- [ ] **Screen Sharing** - Desktop sharing capabilities
-- [ ] **Message Encryption** - Additional text encryption layer
-- [ ] **User Preferences** - Customizable interface themes
-- [ ] **Language Support** - Multi-language interface
+## Project layout
 
-## 📄 License
+```
+index.js            Node server (Express + Socket.IO), exported for tests
+public/
+  index.html        UI, dialogs, icon sprite, CSP
+  styles.css        Design system (light + dark)
+  app.js            UI, encryption, WebRTC calls
+  transport.js      Socket.IO and serverless MQTT transports behind one event contract
+  config.js         Runtime configuration
+  fonts/, vendor/   Bricolage Grotesque, Instrument Sans, mqtt.js (all bundled)
+tests/              server.test.js and e2e.js
+docs/screenshots/   README images
+.github/workflows/  Pages deploy and CI
+```
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## Credits and licence
 
-## 👨‍💻 Author & Copyright
+MIT licensed, see [LICENSE](LICENSE). Bundled: [Bricolage Grotesque](https://github.com/ateliertriay/bricolage) and [Instrument Sans](https://github.com/Instrument/instrument-sans) (SIL Open Font License), [MQTT.js](https://github.com/mqttjs/MQTT.js) (MIT).
 
-**Developed by:** [0x0806](https://github.com/0x0806)  
-**Copyright © 2025 0x0806. All rights reserved.**
-
----
-
-### 🌟 Star this repository if you found it helpful!
-
-For questions, issues, or contributions, visit: [github.com/0x0806](https://github.com/0x0806)
-
----
-
-**Keywords:** secure chat, anonymous messaging, video call, webrtc, real-time communication, privacy chat, encrypted messaging, peer-to-peer, socket.io, node.js, express.js, replit deployment
+Built by [0x0806](https://github.com/0x0806).

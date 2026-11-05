@@ -1,276 +1,259 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-
-    <!-- Suggestion 4: Favicon -->
-    <link rel="icon"
-        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
-
-    <!-- Primary Meta Tags -->
-    <title>SecureChat - #1 Free Omegle Alternative 2026: Safe Anonymous Random Video Chat with Strangers | No Sign Up,
-        No Registration</title>
-    <meta name="title" content="SecureChat - Anonymous Video & Text Chat">
-    <meta name="description"
-        content="The #1 free Omegle alternative for anonymous video chat and text chat. Connect with strangers worldwide instantly. No registration required. Secure, private, and fast.">
-    <meta name="keywords"
-        content="omegle alternative, free video chat, anonymous chat, talk to strangers, random video chat, omegle clone, secure chat, video dating, online chat, cam to cam, chatroulette alternative">
-    <meta name="robots" content="index, follow">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <meta name="language" content="English">
-    <meta name="author" content="SecureChat">
-    <meta name="theme-color" content="#020617">
-
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://securechat.replit.app/"> <!-- Replace with your actual URL -->
-    <meta property="og:title" content="SecureChat - Anonymous Video & Text Chat">
-    <meta property="og:description"
-        content="The #1 free Omegle alternative for anonymous video chat and text chat. Connect with strangers worldwide instantly. No registration required.">
-    <meta property="og:image"
-        content="https://via.placeholder.com/1200x630/0f172a/ffffff?text=SecureChat+Omegle+Alternative">
-
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://securechat.replit.app/">
-    <meta property="twitter:title" content="SecureChat - Free Omegle Alternative | Anonymous Video Chat">
-    <meta property="twitter:description"
-        content="The #1 free Omegle alternative for anonymous video chat and text chat. Connect with strangers worldwide instantly. No registration required.">
-    <meta property="twitter:image"
-        content="https://via.placeholder.com/1200x630/0f172a/ffffff?text=SecureChat+Omegle+Alternative">
-
-    <!-- Canonical -->
-    <link rel="canonical" href="https://securechat.replit.app/">
-
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-
-    <!-- Structured Data -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "SecureChat",
-      "url": "https://securechat.replit.app/",
-      "description": "Free anonymous video and text chat platform. The best Omegle alternative for connecting with strangers securely.",
-      "applicationCategory": "SocialNetworkingApplication",
-      "operatingSystem": "Web",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      },
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.9",
-        "ratingCount": "5000"
-      }
-    }
-    </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>SecureChat – anonymous video and text chat</title>
+  <meta name="description" content="Chat with a random stranger by text or video. No account, no history. Text messages are end-to-end encrypted between the two browsers.">
+  <meta name="theme-color" content="#EBEDF5" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0E1125" media="(prefers-color-scheme: dark)">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="SecureChat – anonymous video and text chat">
+  <meta property="og:description" content="Random text and video chat with no account and no history.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="fonts/bricolage-grotesque-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' ws: wss: https:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
-    <div class="app-container">
-        <!-- Header -->
-        <header class="header">
-            <div class="logo">
-                <i class="fas fa-shield-alt"></i>
-                <span>SecureChat</span>
-                <span class="privacy-badge">
-                    <i class="fas fa-lock"></i>
-                    100% Private
-                </span>
-            </div>
-            <div class="status-indicator" id="connectionStatus">
-                <i class="fas fa-circle"></i>
-                <span>Connected</span>
-            </div>
-        </header>
+  <!-- Icon sprite -->
+  <svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="i-video" viewBox="0 0 24 24"><rect x="2" y="6" width="13" height="12" rx="3"/><path d="m15 10 6-3v10l-6-3z"/></symbol>
+      <symbol id="i-video-off" viewBox="0 0 24 24"><path d="M15 10.5 21 7v10l-6-3.5M10 6H5a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h7a3 3 0 0 0 3-3v-1.5M3 3l18 18"/></symbol>
+      <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+      <symbol id="i-mic-off" viewBox="0 0 24 24"><path d="M15 9.3V6a3 3 0 0 0-5.9-.8M9 9v2a3 3 0 0 0 4.6 2.5M5 11a7 7 0 0 0 11.2 5.6M19 11a7 7 0 0 1-.6 2.8M12 18v3M3 3l18 18"/></symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
+      <symbol id="i-skip" viewBox="0 0 24 24"><path d="M5 5l9 7-9 7zM18 5v14"/></symbol>
+      <symbol id="i-leave" viewBox="0 0 24 24"><path d="M9 4H5v16h4M14 8l4 4-4 4M18 12H9"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+      <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+      <symbol id="i-send" viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-7z"/></symbol>
+      <symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14a4 4 0 0 0 8 0M9 9.5h.01M15 9.5h.01"/></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></symbol>
+      <symbol id="i-volume" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM17 9a4 4 0 0 1 0 6M19.5 6.5a8 8 0 0 1 0 11"/></symbol>
+      <symbol id="i-volume-off" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM17 9l5 6M22 9l-5 6"/></symbol>
+      <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+      <symbol id="i-flip" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><path d="M9.5 13.5a3 3 0 0 1 5-1.5M14.5 15.5a3 3 0 0 1-5 1.5"/></symbol>
+      <symbol id="i-screen" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></symbol>
+      <symbol id="i-pip" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><rect x="12" y="11" width="7" height="5" rx="1"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6"/></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    </defs>
+  </svg>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Welcome Screen -->
-            <div class="welcome-screen" id="welcomeScreen">
-                <div class="welcome-card">
-                    <div class="welcome-icon">
-                        <i class="fas fa-comments"></i>
-                    </div>
-                    <h1>SecureChat </h1>
-                    <p>Connect with strangers around the world anonymously and securely. The best free random video chat
-                        app.</p>
-                    <div class="features">
-                        <div class="feature">
-                            <i class="fas fa-user-secret"></i>
-                            <span>100% Anonymous</span>
-                        </div>
-                        <div class="feature">
-                            <i class="fas fa-video"></i>
-                            <span>Video & Voice Calls</span>
-                        </div>
-                        <div class="feature">
-                            <i class="fas fa-lock"></i>
-                            <span>Secure & Private</span>
-                        </div>
-                    </div>
+  <a class="skip-link" href="#main">Skip to content</a>
 
+  <div class="app" id="app" data-screen="welcome">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="SecureChat home">
+        <svg class="brand-mark" viewBox="0 0 40 28" aria-hidden="true"><circle cx="14" cy="14" r="12" fill="var(--primary)"/><circle cx="26" cy="14" r="12" fill="var(--sun)"/><path d="M20 4.1a12 12 0 0 1 0 19.8 12 12 0 0 1 0-19.8z" fill="var(--ink)"/></svg>
+        <span>SecureChat</span>
+      </a>
+      <div class="topbar-right">
+        <button class="chip chip-safe hidden" id="safetyChip" type="button" aria-haspopup="dialog">
+          <svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg><span>Encrypted</span>
+        </button>
+        <span class="chip" id="onlineChip" role="status"><span class="dot" aria-hidden="true"></span><span id="onlineText">Connecting…</span></span>
+        <button class="icon-btn" id="soundBtn" type="button" aria-pressed="true" aria-label="Sounds on" title="Sounds">
+          <svg class="ico" aria-hidden="true"><use href="#i-volume"/></svg>
+        </button>
+        <button class="icon-btn" id="themeBtn" type="button" aria-label="Switch to dark theme" title="Theme">
+          <svg class="ico" aria-hidden="true"><use href="#i-moon"/></svg>
+        </button>
+      </div>
+    </header>
 
-
-                    <div class="buttons-container">
-                        <button class="start-video-btn" id="startVideoChatBtn">
-                            <i class="fas fa-video"></i>
-                            Video Chat
-                        </button>
-                        <button class="start-chat-btn" id="startChatBtn">
-                            <i class="fas fa-comment-alt"></i>
-                            Text Chat
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Waiting Screen -->
-            <div class="waiting-screen hidden" id="waitingScreen">
-                <div class="waiting-card">
-                    <div class="spinner">
-                        <div class="spinner-inner"></div>
-                    </div>
-                    <h2>Finding a chat partner...</h2>
-                    <p>Please wait while we connect you with someone</p>
-                    <button class="cancel-btn" id="cancelWaitBtn">
-                        <i class="fas fa-times" aria-hidden="true"></i>
-                        Cancel
-                    </button>
-                </div>
-            </div>
-
-            <!-- Chat Screen -->
-            <div class="chat-screen hidden" id="chatScreen">
-                <div class="chat-header">
-                    <div class="partner-info">
-                        <div class="partner-avatar">
-                            <i class="fas fa-user"></i>
-                        </div>
-                        <div class="partner-details">
-                            <span class="partner-name">Anonymous User</span>
-                            <span class="partner-status" id="partnerStatus">Online</span>
-                        </div>
-                    </div>
-                    <div class="chat-controls">
-                        <!-- NEW: Switch to Video Call Button -->
-                        <button class="control-btn exit-btn" id="exitChatBtn" title="Exit to Home"
-                            aria-label="Exit to Home">
-                            <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
-                        </button>
-                        <button class="control-btn skip-btn" id="skipBtn" title="Next Partner (Esc)"
-                            aria-label="Next Partner">
-                            <i class="fas fa-step-forward" aria-hidden="true"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Text Interface Container -->
-                <div class="text-interface" id="textInterface">
-                    <div class="chat-messages" id="chatMessages">
-                        <div class="system-message">
-                            <i class="fas fa-info-circle"></i>
-                            <span>You're now connected with a stranger. Say hello!</span>
-                        </div>
-                    </div>
-                    <!-- Suggestion 7: Scroll to Bottom Button -->
-                    <button class="scroll-bottom-btn hidden" id="scrollBottomBtn" title="Scroll to Bottom">
-                        <i class="fas fa-arrow-down"></i>
-                    </button>
-
-                    <div class="typing-indicator hidden" id="typingIndicator">
-                        <div class="typing-dots">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                        </div>
-                        <span>Partner is typing...</span>
-                    </div>
-
-                    <div class="message-input-container">
-                        <div class="message-input">
-                            <button class="emoji-btn" id="emojiBtn" title="Open Emojis" aria-label="Open Emojis">
-                                <i class="far fa-smile" aria-hidden="true"></i>
-                            </button>
-                            <div class="emoji-picker hidden" id="emojiPicker"></div>
-                            <input type="text" id="messageInput" placeholder="Type your message..." maxlength="500">
-                            <button class="send-btn" id="sendBtn" title="Send Message" aria-label="Send Message">
-                                <i class="fas fa-paper-plane" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Video Interface Container (Standalone) -->
-            <div class="video-interface hidden" id="videoContainer">
-                <div class="video-wrapper">
-                    <div id="callTimer" class="call-timer hidden">00:00</div>
-                    <div class="remote-video-wrapper video-card">
-                        <video id="remoteVideo" autoplay playsinline></video>
-                    </div>
-                    <div class="local-video-wrapper video-card">
-                        <video id="localVideo" muted autoplay playsinline></video>
-                    </div>
-                </div>
-
-                <div class="video-controls">
-                    <button class="video-control-btn" id="toggleVideoBtn" title="Toggle Camera">
-                        <i class="fas fa-video"></i>
-                    </button>
-                    <!-- Suggestion 5: Switch Camera -->
-                    <button class="video-control-btn" id="switchCameraBtn" title="Switch Camera">
-                        <i class="fas fa-camera-rotate"></i>
-                    </button>
-                    <button class="video-control-btn" id="toggleAudioBtn" title="Toggle Mic">
-                        <i class="fas fa-microphone"></i>
-                    </button>
-
-                    <button class="video-control-btn end-call-btn" id="endCallBtn" title="End Call & Exit">
-                        <i class="fas fa-phone-slash"></i>
-                    </button>
-                    <button class="video-control-btn skip-video-btn" id="skipVideoBtn" title="Skip Partner">
-                        <i class="fas fa-step-forward"></i>
-                    </button>
-                    <button class="video-control-btn" id="fullscreenBtn" title="Fullscreen">
-                        <i class="fas fa-expand"></i>
-                    </button>
-                </div>
-            </div>
-        </main>
-
-        <!-- Notifications -->
-        <div class="notification-container" id="notificationContainer"></div>
-
-        <!-- Call Request Modal -->
-        <div class="modal hidden" id="callRequestModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <i class="fas fa-video"></i>
-                    <h3>Incoming Video Call</h3>
-                </div>
-                <p>Your chat partner wants to start a video call</p>
-                <div class="modal-actions">
-                    <button class="modal-btn decline-btn" id="declineCallBtn">
-                        <i class="fas fa-times" aria-hidden="true"></i>
-                        Decline
-                    </button>
-                    <button class="modal-btn accept-btn" id="acceptCallBtn">
-                        <i class="fas fa-check" aria-hidden="true"></i>
-                        Accept
-                    </button>
-                </div>
-            </div>
+    <main id="main" tabindex="-1">
+      <!-- Welcome -->
+      <section class="welcome" id="welcomeScreen" aria-labelledby="welcomeTitle">
+        <div class="welcome-copy">
+          <h1 id="welcomeTitle">Meet someone new.<br>No account, no history.</h1>
+          <p class="lede">Get paired with a random person for a text or video chat. Text is encrypted between your two browsers, and everything disappears when the chat ends.</p>
+          <div class="cta-row">
+            <button class="btn btn-primary btn-lg" id="startVideoBtn" type="button" disabled>
+              <svg class="ico" aria-hidden="true"><use href="#i-video"/></svg>Start video chat
+            </button>
+            <button class="btn btn-secondary btn-lg" id="startTextBtn" type="button" disabled>
+              <svg class="ico" aria-hidden="true"><use href="#i-chat"/></svg>Start text chat
+            </button>
+          </div>
+          <p class="fine" id="consentHint">You must be 18 or older. Camera access is only requested for video chat.</p>
+          <ul class="facts">
+            <li><svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg><span><strong>Private by default.</strong> Messages are encrypted in your browser before they leave it.</span></li>
+            <li><svg class="ico" aria-hidden="true"><use href="#i-users"/></svg><span><strong>Nothing to sign up for.</strong> You are never asked for a name, email or phone number.</span></li>
+            <li><svg class="ico" aria-hidden="true"><use href="#i-skip"/></svg><span><strong>Leave any time.</strong> Skip to the next person or report someone in one tap.</span></li>
+          </ul>
         </div>
+        <div class="pair" aria-hidden="true">
+          <div class="tile tile-you"><span class="tile-label">You</span><span class="figure"></span></div>
+          <div class="tile tile-them"><span class="tile-label">Stranger</span><span class="figure"></span></div>
+          <span class="pair-lock"><svg class="ico"><use href="#i-lock"/></svg>Encrypted</span>
+        </div>
+      </section>
+
+      <!-- Waiting -->
+      <section class="waiting hidden" id="waitingScreen" aria-labelledby="waitingTitle">
+        <div class="waiting-stage">
+          <div class="tile tile-you">
+            <video id="previewVideo" class="preview" muted autoplay playsinline></video>
+            <span class="tile-label">You</span><span class="figure"></span>
+          </div>
+          <div class="tile tile-them searching"><span class="tile-label">Stranger</span><span class="figure"></span></div>
+        </div>
+        <h2 id="waitingTitle">Looking for someone…</h2>
+        <p class="lede" id="waitingSub">Waiting for another person who wants a text chat.</p>
+        <button class="btn btn-secondary" id="cancelBtn" type="button">Cancel</button>
+      </section>
+
+      <!-- Session -->
+      <section class="session hidden" id="sessionScreen" data-mode="text" data-call="off" aria-label="Chat">
+        <div class="stage" id="stage">
+          <div class="remote">
+            <video id="remoteVideo" autoplay playsinline></video>
+            <div class="remote-wait" id="remoteWait"><span class="spinner" aria-hidden="true"></span><span id="remoteWaitText">Connecting video…</span></div>
+          </div>
+          <div class="local"><video id="localVideo" muted autoplay playsinline></video></div>
+          <div class="call-timer" id="callTimer" role="timer" aria-label="Call length">00:00</div>
+          <div class="controls" role="toolbar" aria-label="Call controls">
+            <button class="ctl" id="micBtn" type="button" data-action="toggle-mic" aria-pressed="false" aria-label="Mute microphone" title="Mute microphone (Alt+M)"><svg class="ico" aria-hidden="true"><use href="#i-mic"/></svg></button>
+            <button class="ctl" id="camBtn" type="button" data-action="toggle-cam" aria-pressed="false" aria-label="Turn camera off" title="Turn camera off (Alt+V)"><svg class="ico" aria-hidden="true"><use href="#i-video"/></svg></button>
+            <button class="ctl hidden" id="flipBtn" type="button" data-action="switch-camera" aria-label="Switch camera" title="Switch camera"><svg class="ico" aria-hidden="true"><use href="#i-flip"/></svg></button>
+            <button class="ctl hidden" id="shareBtn" type="button" data-action="share-screen" aria-pressed="false" aria-label="Share your screen" title="Share your screen"><svg class="ico" aria-hidden="true"><use href="#i-screen"/></svg></button>
+            <button class="ctl hidden" id="pipBtn" type="button" data-action="pip" aria-label="Pop out video" title="Pop out video"><svg class="ico" aria-hidden="true"><use href="#i-pip"/></svg></button>
+            <button class="ctl" type="button" data-action="fullscreen" aria-label="Full screen" title="Full screen"><svg class="ico" aria-hidden="true"><use href="#i-expand"/></svg></button>
+            <button class="ctl ctl-text-only hidden" id="stopVideoBtn" type="button" data-action="stop-video" aria-label="Stop video" title="Stop video"><svg class="ico" aria-hidden="true"><use href="#i-video-off"/></svg></button>
+            <button class="ctl ctl-next" type="button" data-action="skip" aria-label="Next person" title="Next person (Alt+N)"><svg class="ico" aria-hidden="true"><use href="#i-skip"/></svg><span>Next</span></button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="who">
+              <span class="avatar" aria-hidden="true"><span class="figure"></span></span>
+              <div class="who-text"><strong>Stranger</strong><span id="partnerStatus" class="status">Connected</span></div>
+            </div>
+            <div class="panel-actions">
+              <button class="btn btn-ghost btn-sm" id="askVideoBtn" type="button" data-action="ask-video" title="Ask to switch to video"><svg class="ico" aria-hidden="true"><use href="#i-video"/></svg><span>Video</span></button>
+              <button class="icon-btn" type="button" data-action="report" aria-label="Report this person" title="Report"><svg class="ico" aria-hidden="true"><use href="#i-flag"/></svg></button>
+              <button class="btn btn-secondary btn-sm" type="button" data-action="skip" title="Next person (Alt+N)"><svg class="ico" aria-hidden="true"><use href="#i-skip"/></svg><span>Next</span></button>
+              <button class="icon-btn" type="button" data-action="home" aria-label="Leave chat" title="Leave chat"><svg class="ico" aria-hidden="true"><use href="#i-leave"/></svg></button>
+            </div>
+          </div>
+
+          <div class="messages" id="messages" role="log" aria-live="polite" aria-label="Messages" tabindex="0"></div>
+          <button class="to-bottom hidden" id="toBottom" type="button" aria-label="Scroll to latest message"><svg class="ico" aria-hidden="true"><use href="#i-down"/></svg></button>
+          <div class="typing hidden" id="typing" role="status"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>Stranger is typing</div>
+
+          <form class="composer" id="composer" autocomplete="off">
+            <div class="emoji-pop hidden" id="emojiPop" role="listbox" aria-label="Emoji"></div>
+            <button class="icon-btn" id="emojiBtn" type="button" aria-label="Insert emoji" aria-expanded="false"><svg class="ico" aria-hidden="true"><use href="#i-smile"/></svg></button>
+            <input id="messageInput" type="text" maxlength="500" placeholder="Securing this chat…" aria-label="Message" disabled>
+            <button class="btn btn-primary btn-send" id="sendBtn" type="submit" aria-label="Send message" disabled><svg class="ico" aria-hidden="true"><use href="#i-send"/></svg></button>
+          </form>
+          <div class="ended hidden" id="endedBar">
+            <span>This chat has ended.</span>
+            <button class="btn btn-primary btn-sm" type="button" data-action="next">Find someone new</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-action="home">Home</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <button class="link" type="button" id="rulesLink">Rules and privacy</button>
+      <a class="link" href="https://github.com/0x0806/securechat" target="_blank" rel="noopener noreferrer">Open source on GitHub</a>
+    </footer>
+  </div>
+
+  <div class="toasts" id="toasts" role="region" aria-label="Notifications" aria-live="polite"></div>
+
+  <!-- Consent: cannot be dismissed with Esc or a backdrop click -->
+  <dialog id="consentDialog" class="dialog dialog-consent" aria-labelledby="consentTitle" aria-describedby="consentLede">
+    <form method="dialog" id="consentForm" class="dialog-body">
+      <h2 id="consentTitle">Before you start</h2>
+      <p id="consentLede" class="lede">SecureChat pairs you with strangers. Nobody screens them first, so please read this.</p>
+      <ul class="terms">
+        <li>People you meet may say or show things you find upsetting or explicit.</li>
+        <li>Text is encrypted end to end. In a video call your partner’s browser connects directly to yours, which lets them see your IP address.</li>
+        <li>Never share your address, passwords, money or anything else you would regret. Do not use SecureChat for anything illegal, or to harass or record people.</li>
+        <li>This is a free, open-source project run without moderators, and you are responsible for what you do on it. You can report anyone.</li>
+      </ul>
+      <label class="check"><input type="checkbox" id="ageCheck"><span>I am 18 years old or older.</span></label>
+      <label class="check"><input type="checkbox" id="termsCheck"><span>I have read the rules above and accept the risks.</span></label>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost" id="consentLeave">Leave</button>
+        <button type="submit" class="btn btn-primary" id="consentAgree" disabled>Agree and continue</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="rulesDialog" class="dialog" aria-labelledby="rulesTitle">
+    <div class="dialog-body">
+      <h2 id="rulesTitle">Rules and privacy</h2>
+      <h3>Be decent</h3>
+      <p>Treat people the way you want to be treated. No harassment, hate, sexual content involving minors, threats, spam or illegal activity. Use Report if someone crosses the line.</p>
+      <h3>What the server sees</h3>
+      <p>The server pairs people and relays messages and call setup. It keeps nothing after a chat ends and has no database. It sees your IP address like any web server does, and it writes short operational log lines (such as connection IDs and report reasons).</p>
+      <h3>What is encrypted</h3>
+      <p>Text messages are encrypted in your browser with a key agreed directly with your partner, so the server only relays scrambled text. The key exchange goes through the server, so to be certain nobody is in the middle, compare the safety code in the lock menu with your partner. Video and audio are encrypted by WebRTC and flow directly between browsers.</p>
+      <h3>What you reveal</h3>
+      <p>In a video call your partner’s browser learns your IP address. Use a VPN if that matters to you. Anything you say or show can be recorded by the other person.</p>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost hidden" id="withdrawConsent">Withdraw my consent</button>
+        <button type="button" class="btn btn-primary" data-close="rulesDialog">Close</button>
+      </div>
     </div>
+  </dialog>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="app.js"></script>
+  <dialog id="safetyDialog" class="dialog" aria-labelledby="safetyTitle">
+    <div class="dialog-body">
+      <h2 id="safetyTitle">Safety code</h2>
+      <p>Messages in this chat are encrypted between you and your partner. To confirm nobody is in the middle, read this code aloud or paste it in the chat, and check that your partner sees the same one.</p>
+      <p class="code" id="safetyCode" aria-live="polite">—</p>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-secondary" id="copyCode">Copy code</button>
+        <button type="button" class="btn btn-primary" data-close="safetyDialog">Done</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="callDialog" class="dialog dialog-sm" aria-labelledby="callTitle">
+    <div class="dialog-body">
+      <h2 id="callTitle">Switch to video?</h2>
+      <p>Your partner would like to start a video call. They will be able to see your IP address.</p>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost" id="declineCall">Not now</button>
+        <button type="button" class="btn btn-primary" id="acceptCall">Start video</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="reportDialog" class="dialog dialog-sm" aria-labelledby="reportTitle">
+    <form method="dialog" class="dialog-body" id="reportForm">
+      <h2 id="reportTitle">Report this person</h2>
+      <p>Pick the closest reason. You will be moved on to someone else.</p>
+      <fieldset class="reasons">
+        <legend class="sr-only">Reason</legend>
+        <label class="check"><input type="radio" name="reason" value="abuse" checked><span>Harassment or abuse</span></label>
+        <label class="check"><input type="radio" name="reason" value="nudity"><span>Nudity or sexual content</span></label>
+        <label class="check"><input type="radio" name="reason" value="underage"><span>Seems to be under 18</span></label>
+        <label class="check"><input type="radio" name="reason" value="spam"><span>Spam or advertising</span></label>
+        <label class="check"><input type="radio" name="reason" value="other"><span>Something else</span></label>
+      </fieldset>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost" data-close="reportDialog">Cancel</button>
+        <button type="submit" class="btn btn-danger" id="reportSubmit">Report and skip</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="config.js"></script>
+  <script src="transport.js"></script>
+  <script src="app.js"></script>
 </body>
-
 </html>
