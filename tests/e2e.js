@@ -66,13 +66,16 @@ async function newPage(browser, url, { width = 1280, height = 800, consent = fal
   page.errors = [];
   page.on('pageerror', (e) => page.errors.push(`pageerror: ${e.message}`));
   page.on('console', (m) => { if (m.type() === 'error' && !/favicon|Failed to load resource/.test(m.text())) page.errors.push(`console: ${m.text()}`); });
+  page.on('response', (r) => { if (r.status() >= 400 && !/\/health$/.test(r.url())) page.errors.push(`http ${r.status()} ${r.url()}`); });
+  page.on('requestfailed', (r) => page.errors.push(`requestfailed ${r.url()} ${r.failure() && r.failure().errorText}`));
   await page.goto(url);
   if (consent) await agree(page);
   return page;
 }
 
 async function agree(page) {
-  await page.waitForSelector('#consentDialog[open]');
+  try { await page.waitForSelector('#consentDialog[open]', { timeout: 30000 }); }
+  catch (err) { throw new Error(`consent dialog never opened. page errors: ${(page.errors || []).join(' | ') || 'none'}`); }
   await page.check('#ageCheck');
   await page.check('#termsCheck');
   await page.click('#consentAgree');

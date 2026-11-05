@@ -408,6 +408,7 @@
 
   async function createTransport(cfg) {
     let kind = cfg.transport || 'auto';
+    if (kind === 'auto' && /\.github\.io$/.test(location.hostname)) kind = 'mqtt'; // GitHub Pages is static, no server to probe
     if (kind === 'auto') {
       try {
         const r = await fetch('health', { cache: 'no-store' });
