@@ -7,7 +7,7 @@ It works in two ways, and you can use either:
 - **On GitHub Pages (or any static host)**: fully serverless. People find each other and set up calls through a public MQTT broker, so there is nothing to run.
 - **With the bundled Node server**: Socket.IO matchmaking and relay, for people who want to host their own.
 
-**Live demo:** https://0x0806.github.io/securechat/
+**Live demo:** [https://0x0806.github.io/securechat/](https://securechat.online/)
 
 <p align="center">
   <img src="docs/screenshots/welcome-light.png" alt="SecureChat welcome screen" width="860">
