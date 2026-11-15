@@ -177,3 +177,4 @@ docs/screenshots/   README images
 MIT licensed, see [LICENSE](LICENSE). Bundled: [Bricolage Grotesque](https://github.com/ateliertriay/bricolage) and [Instrument Sans](https://github.com/Instrument/instrument-sans) (SIL Open Font License), [MQTT.js](https://github.com/mqttjs/MQTT.js) (MIT).
 
 Built by [0x0806](https://github.com/0x0806).
+
