@@ -141,17 +141,13 @@ Other hardening: strict CSP with no inline script or style, messages are rendere
 
 This is a hobby-scale project without moderation. Do not rely on it for anything where you need guarantees.
 
-## Tests
+## Checks
 
 ```bash
 npm run check            # syntax-check every script
-npm test                 # 28 server and matching-rule tests (node:test + socket.io-client), no browser needed
-npm run test:e2e         # 62 browser checks across both transports (needs Chromium)
-npm run screenshots      # re-captures docs/screenshots
-node tests/e2e.js --url=https://0x0806.github.io/securechat/   # test a deployed site
 ```
 
-The end-to-end suite launches real Chromium instances with fake camera and microphone devices and walks through consent, matching, encrypted chat in both directions, XSS probes, formatting, slash commands, reactions, replies, read receipts, photos, nicknames, settings, private rooms, interest matching, blocking, the panic button, the offline banner, the installable app, upgrade to video (decline and accept), video call controls and extras, reporting, next, leaving, tab close, and video calls that must reach `connected` with video frames flowing. It also fails on console errors from any page. It runs against the Node server and against a static build served like a GitHub project page. Set `CHROMIUM_PATH` if your Chromium is not in a standard location. The serverless run uses a throwaway `?ns=` lobby, so it never touches real users.
+The automated test suite is kept out of the public repository.
 
 ## Project layout
 
@@ -170,7 +166,6 @@ public/
   .well-known/security.txt              Security contact (RFC 9116), see SECURITY.md
   config.js         Runtime configuration
   fonts/, vendor/   Bricolage Grotesque, Instrument Sans, mqtt.js (all bundled)
-tests/              server.test.js, matching.test.js and e2e.js
 docs/screenshots/   README images
 .github/workflows/  Pages deploy and CI
 ```

@@ -19,6 +19,7 @@ SEO, discoverability and security hardening. Tests: 31 server tests and 64 end-t
 ### Security
 - ✓ `/.well-known/security.txt` (RFC 9116) and a `SECURITY.md` policy with private advisory reporting.
 - ✓ Dependencies patched: `npm audit` now reports 0 vulnerabilities (was 5: engine.io, ws, socket.io-parser, proxy-addr).
+- ○ CI now runs the syntax check and `npm audit` (high and above); the test suite is no longer published.
 - ○ Dependabot for npm and GitHub Actions.
 - ○ Clickjacking guard in the client, because GitHub Pages cannot send `X-Frame-Options` or `frame-ancestors`.
 - ✓ `Referrer-Policy: no-referrer` (header and meta), so invite links' room codes never leak to other sites.
