@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>About – SecureChat</title>
+  <meta name="description" content="What SecureChat is, why it exists and how its anonymous, encrypted text and video chat works.">
+  <link rel="canonical" href="https://securechat.online/about/">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light dark">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'none'; style-src 'self'; font-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SecureChat">
+  <meta property="og:url" content="https://securechat.online/about/">
+  <meta property="og:title" content="About – SecureChat">
+  <meta property="og:description" content="What SecureChat is, why it exists and how its anonymous, encrypted text and video chat works.">
+  <meta property="og:image" content="https://securechat.online/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"AboutPage","name":"About – SecureChat","url":"https://securechat.online/about/","isPartOf":{"@id":"https://securechat.online/#website"}}</script>
+</head>
+<body>
+  <div class="doc">
+    <header class="doc-nav">
+      <a class="brand" href="/" aria-label="SecureChat home"><svg class="brand-mark" viewBox="0 0 40 28" aria-hidden="true"><circle cx="14" cy="14" r="12" fill="var(--primary)"/><circle cx="26" cy="14" r="12" fill="var(--sun)"/><path d="M20 4.1a12 12 0 0 1 0 19.8 12 12 0 0 1 0-19.8z" fill="var(--ink)"/></svg><span>SecureChat</span></a>
+      <nav aria-label="Site"><a href="/about/" aria-current="page">About</a><a href="/privacy/">Privacy</a><a href="/contact/">Contact</a></nav>
+    </header>
+    <main>
+      <h1>About SecureChat</h1>
+      <p>SecureChat is a free web app that pairs you with a random person for a one-to-one text or video chat. There is no account to create and no chat history to keep. You open the page, confirm you are 18 or older, and start talking.</p>
+      <h2>Why it exists</h2>
+      <p>Most random chat sites ask for little and protect even less. SecureChat tries to do the opposite: it encrypts text messages in your browser, keeps nothing after a chat ends, loads no trackers or third-party scripts, and is honest about what it cannot protect.</p>
+      <h2>What you can do</h2>
+      <ul>
+        <li>Text chat with formatting, emoji, reactions, replies and photos, all end-to-end encrypted.</li>
+        <li>Video chat directly between browsers over WebRTC, with mute, camera off, screen share and picture-in-picture.</li>
+        <li>Match by shared interests or language, or create a private room and invite a friend.</li>
+        <li>Skip, report, or hide the chat instantly with the panic button (Alt+X).</li>
+        <li>Install it as an app on your phone or computer.</li>
+      </ul>
+      <h2>How it works</h2>
+      <p>On this site, matchmaking and call setup run without a server of our own, over public MQTT brokers. Your browser and your partner's agree an encryption key directly (ECDH P-256) and encrypt each text message with AES-256-GCM. Video and audio flow peer to peer, encrypted by WebRTC. The code can also be self-hosted with the included Node.js server, which keeps no database.</p>
+      <h2>Who makes it</h2>
+      <p>SecureChat is an open-source project by <a href="https://github.com/0x0806">0x0806</a>, published under the MIT licence. It is a hobby-scale project without moderators, so please read the <a href="/privacy/">privacy page</a> before relying on it.</p>
+      <p><a class="btn btn-primary btn-lg" href="/">Start chatting</a></p>
+    </main>
+    <footer class="doc-foot">SecureChat is open source under the MIT licence. <a href="https://github.com/0x0806/securechat">Source on GitHub</a>.</footer>
+  </div>
+</body>
+</html>

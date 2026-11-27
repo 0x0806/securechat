@@ -12,6 +12,16 @@
   --r-tile: 30px 30px 30px 8px;
   color-scheme: light;
 }
+@media (prefers-color-scheme: dark) {
+  /* Pages without scripts (/about/, /privacy/, /contact/) and the app before it sets data-theme. */
+  :root:not([data-theme]) {
+    --bg: #0e1125; --surface: #171b38; --surface-2: #1f2446; --ink: #eef0ff; --ink-2: #a6abd1; --line: #2c3263;
+    --primary: #8c7bff; --on-primary: #0e1125; --primary-soft: #2b2760;
+    --flare: #ff7a5c; --flare-soft: #3a2230; --mint: #3ddbb0; --mint-soft: #14352f;
+    --shadow: 0 1px 2px rgb(0 0 0 / .3), 0 8px 28px rgb(0 0 0 / .35);
+    color-scheme: dark;
+  }
+}
 :root[data-theme="dark"] {
   --bg: #0e1125; --surface: #171b38; --surface-2: #1f2446; --ink: #eef0ff; --ink-2: #a6abd1; --line: #2c3263;
   --primary: #8c7bff; --on-primary: #0e1125; --primary-soft: #2b2760;
@@ -376,3 +386,18 @@ input.readonly { width: 100%; } .code-sm { word-break: break-all; font-size: .87
 .notfound { min-height: 100dvh; display: grid; align-content: center; justify-items: start; gap: 8px; max-width: 640px; margin: 0 auto; padding: 24px clamp(16px, 4vw, 40px); }
 .notfound h1 { font-size: clamp(2rem, 6vw, 3.25rem); }
 .notfound .btn { text-decoration: none; margin-top: 12px; }
+
+/* Static info pages: /about/, /privacy/, /contact/ */
+.doc { max-width: 720px; margin: 0 auto; padding: 24px clamp(16px, 4vw, 40px) 48px; }
+.doc-nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 8px 0 24px; }
+.doc-nav .brand { text-decoration: none; }
+.doc-nav nav { display: flex; gap: 16px; flex-wrap: wrap; font-size: .9375rem; }
+.doc-nav nav a, .doc a { color: var(--ink); text-underline-offset: 3px; }
+.doc-nav nav a[aria-current="page"] { font-weight: 600; text-decoration: none; }
+.doc h1 { font-size: clamp(2rem, 6vw, 3rem); margin-bottom: 12px; }
+.doc h2 { font-size: 1.375rem; margin: 32px 0 8px; }
+.doc p, .doc li { line-height: 1.6; color: var(--ink-2); max-width: 65ch; }
+.doc ul { padding-left: 1.25rem; }
+.doc .btn { text-decoration: none; color: var(--on-primary); margin-top: 24px; }
+.doc-foot { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line); font-size: .875rem; color: var(--ink-2); }
+a.link { display: inline-block; }

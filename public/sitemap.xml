@@ -7,4 +7,16 @@
       <image:loc>https://securechat.online/og-image.png</image:loc>
     </image:image>
   </url>
+  <url>
+    <loc>https://securechat.online/about/</loc>
+    <lastmod>2026-11-27</lastmod>
+  </url>
+  <url>
+    <loc>https://securechat.online/privacy/</loc>
+    <lastmod>2026-11-27</lastmod>
+  </url>
+  <url>
+    <loc>https://securechat.online/contact/</loc>
+    <lastmod>2026-11-27</lastmod>
+  </url>
 </urlset>

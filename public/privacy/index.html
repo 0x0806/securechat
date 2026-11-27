@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy – SecureChat</title>
+  <meta name="description" content="What SecureChat stores, what is encrypted, and what other people can see when you chat.">
+  <link rel="canonical" href="https://securechat.online/privacy/">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light dark">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'none'; style-src 'self'; font-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SecureChat">
+  <meta property="og:url" content="https://securechat.online/privacy/">
+  <meta property="og:title" content="Privacy – SecureChat">
+  <meta property="og:description" content="What SecureChat stores, what is encrypted, and what other people can see when you chat.">
+  <meta property="og:image" content="https://securechat.online/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Privacy – SecureChat","url":"https://securechat.online/privacy/","isPartOf":{"@id":"https://securechat.online/#website"}}</script>
+</head>
+<body>
+  <div class="doc">
+    <header class="doc-nav">
+      <a class="brand" href="/" aria-label="SecureChat home"><svg class="brand-mark" viewBox="0 0 40 28" aria-hidden="true"><circle cx="14" cy="14" r="12" fill="var(--primary)"/><circle cx="26" cy="14" r="12" fill="var(--sun)"/><path d="M20 4.1a12 12 0 0 1 0 19.8 12 12 0 0 1 0-19.8z" fill="var(--ink)"/></svg><span>SecureChat</span></a>
+      <nav aria-label="Site"><a href="/about/">About</a><a href="/privacy/" aria-current="page">Privacy</a><a href="/contact/">Contact</a></nav>
+    </header>
+    <main>
+      <h1>Privacy</h1>
+      <p>Short version: SecureChat has no accounts, no database and no message history. Text messages are encrypted in your browser. Video calls reveal your IP address to the person you are talking to. Last updated 27 November 2026.</p>
+      <h2>What we collect</h2>
+      <p>Nothing that identifies you. You are never asked for a name, email address or phone number. There are no analytics, advertising or tracking scripts on this site, and no cookies.</p>
+      <h2>What stays on your device</h2>
+      <p>Your consent to the rules and your settings (theme, nickname, interests, language and similar) are saved in your browser's local storage. The list of people you reported lives in session storage and disappears when you close the tab. You can withdraw consent from "Rules and privacy" in the app, or clear the site's data in your browser at any time.</p>
+      <h2>What is encrypted</h2>
+      <p>Text messages, photos, reactions, replies and read receipts are encrypted in your browser with a key agreed directly with your partner (ECDH P-256, AES-256-GCM), so the relay only carries scrambled data. The key exchange passes through the relay, so compare the safety code in the lock menu with your partner to make sure nobody is in the middle. Video and audio are encrypted by WebRTC (DTLS-SRTP).</p>
+      <h2>What others can see</h2>
+      <ul>
+        <li><strong>The relay</strong> (a public MQTT broker on this site, or the Node server when self-hosted) sees your IP address, connection IDs, who is paired with whom while chatting, and call-setup data. Public MQTT brokers are run by third parties.</li>
+        <li><strong>Your partner</strong> learns your IP address in a video call, because the connection is direct. Use a VPN if that matters to you.</li>
+        <li><strong>Anyone you chat with</strong> can record what you say or show. Do not share anything you would not want kept.</li>
+      </ul>
+      <h2>Hosting</h2>
+      <p>This site is served by GitHub Pages, which, like any web host, processes your IP address to deliver the page. See GitHub's own privacy statement for details.</p>
+      <h2>Reports</h2>
+      <p>On this site there is no server to receive reports, so reporting moves you on and stops you being matched with that person again in the session. A self-hosted Node server writes report reasons and connection IDs to its log.</p>
+      <h2>Age</h2>
+      <p>SecureChat is for people aged 18 and over only.</p>
+      <p><a class="btn btn-primary btn-lg" href="/">Start chatting</a></p>
+    </main>
+    <footer class="doc-foot">SecureChat is open source under the MIT licence. <a href="https://github.com/0x0806/securechat">Source on GitHub</a>.</footer>
+  </div>
+</body>
+</html>

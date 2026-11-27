@@ -11,6 +11,9 @@ SEO, discoverability and security hardening. Tests: 31 server tests and 64 end-t
 - ✓ `robots.txt` points to the new `sitemap.xml` and keeps the server's live endpoints out of the index.
 - ✓ `llms.txt` and `llms-full.txt`: a plain summary, privacy model and FAQ for AI assistants and agents.
 - ✓ `humans.txt`.
+- ✓ New `/about/`, `/privacy/` and `/contact/` pages (script-free, strict CSP, in the sitemap and linked from the footer).
+- ✓ `llms.txt` gains a "When to use SecureChat" section for AI agents.
+- ○ Pages without scripts follow the system dark mode.
 - ○ The 404 page uses root-relative links, so it keeps its styles on nested paths, and is `noindex`.
 
 ### Security

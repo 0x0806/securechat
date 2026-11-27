@@ -286,6 +286,15 @@ test('SEO and well-known files are served with the right types', async () => {
   const sec = await (await fetch(`${url}/.well-known/security.txt`)).text();
   const expires = new Date(/^Expires: (.+)$/m.exec(sec)[1]);
   assert.ok(expires > new Date(), 'security.txt has expired; bump Expires');
+  for (const slug of ['about', 'privacy', 'contact']) {
+    const r = await fetch(`${url}/${slug}/`);
+    assert.equal(r.status, 200, slug);
+    const page = await r.text();
+    assert.match(page, new RegExp(`<link rel="canonical" href="https://securechat\\.online/${slug}/">`), slug);
+    const text = page.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    assert.ok(text.length > 1200, `${slug} has real content`);
+    assert.match(await (await fetch(`${url}/sitemap.xml`)).text(), new RegExp(`/${slug}/</loc>`));
+  }
   const og = await fetch(`${url}/og-image.png`);
   assert.equal(og.status, 200);
   assert.match(og.headers.get('content-type'), /image\/png/);

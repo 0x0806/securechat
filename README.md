@@ -166,6 +166,7 @@ public/
   features.js       Settings, messaging extras, call extras, rooms, PWA registration
   sw.js, manifest.webmanifest, icons/   Installable app and offline shell
   robots.txt, sitemap.xml, llms.txt, llms-full.txt, humans.txt, og-image.png   SEO and agent discovery
+  about/, privacy/, contact/            Static info pages
   .well-known/security.txt              Security contact (RFC 9116), see SECURITY.md
   config.js         Runtime configuration
   fonts/, vendor/   Bricolage Grotesque, Instrument Sans, mqtt.js (all bundled)
