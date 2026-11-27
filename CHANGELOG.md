@@ -22,6 +22,7 @@ SEO, discoverability and security hardening. Tests: 31 server tests and 64 end-t
 - ✓ Node server: one-year HSTS, a stricter CSP (`frame-src`, `base-uri`, `form-action`, `manifest-src`), and a wider `Permissions-Policy` that turns off sensors, payment, USB, serial, HID, MIDI and Topics.
 - ✓ Node server answers unknown paths with the styled 404 page and never serves dotfiles except `/.well-known`.
 - ○ Danger colour darkened to meet WCAG AA contrast on its tinted background.
+- ✓ No more `/health` 404 on every visit to the custom domain: `staticHosts` in `config.js` skips the server probe.
 
 ## 3.1.0
 

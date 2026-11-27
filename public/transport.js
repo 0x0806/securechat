@@ -445,7 +445,9 @@
 
   async function createTransport(cfg) {
     let kind = cfg.transport || 'auto';
-    if (kind === 'auto' && /\.github\.io$/.test(location.hostname)) kind = 'mqtt'; // GitHub Pages is static, no server to probe
+    // Static hosts (GitHub Pages, custom domains pointed at it) have no server to probe.
+    const staticHost = /\.github\.io$/.test(location.hostname) || (cfg.staticHosts || []).includes(location.hostname);
+    if (kind === 'auto' && staticHost) kind = 'mqtt';
     if (kind === 'auto') {
       try {
         const r = await fetch('health', { cache: 'no-store' });
