@@ -23,8 +23,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: public
+          # Keep public/.well-known/ (security.txt) and .nojekyll; v4+ drops dotfiles by default.
+          include-hidden-files: true
       - id: deployment
         uses: actions/deploy-pages@v4
+      - name: Smoke-test the live site
+        env:
+          SITE: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          for p in "" robots.txt sitemap.xml llms.txt .well-known/security.txt about/; do
+            for i in 1 2 3 4 5 6; do
+              curl -fsS -o /dev/null "${SITE}${p}?v=${GITHUB_SHA}" && break
+              [ "$i" = 6 ] && { echo "::error::${SITE}${p} is not reachable"; exit 1; }
+              sleep 10
+            done
+          done

@@ -37,7 +37,8 @@
       <p>Text messages, photos, reactions, replies and read receipts are encrypted in your browser with a key agreed directly with your partner (ECDH P-256, AES-256-GCM), so the relay only carries scrambled data. The key exchange passes through the relay, so compare the safety code in the lock menu with your partner to make sure nobody is in the middle. Video and audio are encrypted by WebRTC (DTLS-SRTP).</p>
       <h2>What others can see</h2>
       <ul>
-        <li><strong>The relay</strong> (a public MQTT broker on this site, or the Node server when self-hosted) sees your IP address, connection IDs, who is paired with whom while chatting, and call-setup data. Public MQTT brokers are run by third parties.</li>
+        <li><strong>The relay</strong> (on this site, the public MQTT brokers broker.hivemq.com and broker.emqx.io; or the Node server when self-hosted) sees your IP address, connection IDs, who is paired with whom while chatting, and call-setup data. These brokers are run by third parties.</li>
+        <li><strong>STUN servers</strong> (Google's public stun.l.google.com) see your IP address when a video call is set up, so the two browsers can find a direct route to each other. They see no chat content.</li>
         <li><strong>Your partner</strong> learns your IP address in a video call, because the connection is direct. Use a VPN if that matters to you.</li>
         <li><strong>Anyone you chat with</strong> can record what you say or show. Do not share anything you would not want kept.</li>
       </ul>

@@ -30,6 +30,7 @@ Optional: add up to five interests and a language under "Match preferences". Peo
 - Video and audio are encrypted by WebRTC (DTLS-SRTP) and flow directly between browsers. In a video call, each browser learns the other's IP address. Use a VPN if that matters.
 - Anything shown or said can be recorded by the other person. There are no moderators.
 - On the public site, matchmaking and call setup run serverless over public MQTT brokers; only encrypted text and connection setup messages pass through them.
+- Video call setup uses Google's public STUN servers, which see the caller's IP address but no content.
 - The optional self-hosted Node.js server relays messages and call setup, keeps no database, and logs only short operational lines.
 - The page runs under a strict Content Security Policy and loads no third-party scripts, fonts or trackers.
 
