@@ -61,16 +61,28 @@ function createApp(options = {}) {
           mediaSrc: ["'self'", 'blob:'],
           objectSrc: ["'none'"],
           workerSrc: ["'self'", 'blob:'],
+          manifestSrc: ["'self'"],
+          frameSrc: ["'none'"],
           frameAncestors: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'"],
           // helmet's default adds upgrade-insecure-requests, which breaks plain-http localhost use
           upgradeInsecureRequests: null,
         },
       },
-      permissionsPolicy: undefined,
+      // One year. Browsers ignore HSTS over plain HTTP, so localhost keeps working.
+      strictTransportSecurity: { maxAge: 31536000, includeSubDomains: true },
+      referrerPolicy: { policy: 'no-referrer' }, // invite links carry room codes in the query string
+      crossOriginEmbedderPolicy: false, // would block nothing useful here and breaks some WebRTC setups
     })
   );
   app.use((req, res, next) => {
-    res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()');
+    res.setHeader(
+      'Permissions-Policy',
+      'camera=(self), microphone=(self), display-capture=(self), fullscreen=(self), picture-in-picture=(self), ' +
+        'geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), hid=(), midi=(), magnetometer=(), gyroscope=(), ' +
+        'accelerometer=(), browsing-topics=()'
+    );
     next();
   });
   app.use(cors({ origin: allowedOrigin }));
@@ -81,6 +93,11 @@ function createApp(options = {}) {
       else res.setHeader('Cache-Control', 'no-cache');
       if (/sw\.js$/.test(file)) res.setHeader('Service-Worker-Allowed', '/');
     },
+  }));
+
+  // express.static ignores dot-directories, so mount /.well-known (security.txt) explicitly.
+  app.use('/.well-known', express.static(path.join(__dirname, 'public', '.well-known'), {
+    setHeaders(res) { res.setHeader('Cache-Control', 'public, max-age=3600'); },
   }));
 
   app.get('/health', (req, res) => res.status(200).send('OK'));
@@ -94,7 +111,7 @@ function createApp(options = {}) {
     for (const w of waiting.values()) byMode[w.chatMode] += 1;
     res.json({ online: io.engine.clientsCount, waiting: byMode, chats: chats.size / 2 });
   });
-  app.use((req, res) => res.status(404).send('404 Not Found'));
+  app.use((req, res) => res.status(404).sendFile(path.join(__dirname, 'public', '404.html')));
 
   const io = new Server(server, {
     cors: { origin: allowedOrigin, methods: ['GET', 'POST'] },

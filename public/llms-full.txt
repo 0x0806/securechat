@@ -1,0 +1,61 @@
+# SecureChat – full description
+
+> SecureChat (https://securechat.online/) is a free, open-source web app for anonymous one-to-one text and video chat with a random stranger. No account, no sign-up, no chat history. Text is end-to-end encrypted between the two browsers.
+
+## What it is
+
+SecureChat pairs two people at random for a text chat or a video chat, straight in the browser. Nobody is asked for a name, email address or phone number. When a chat ends, it is gone: there is no database and no message history.
+
+## How to use it
+
+1. Open https://securechat.online/.
+2. Confirm you are 18 or older and accept the rules (shown once, remembered on your device, and withdrawable from "Rules and privacy").
+3. Choose "Start text chat" or "Start video chat". Camera and microphone access is only requested for video.
+4. Chat. Use "Next" to move on to someone else, "Report" if someone breaks the rules, or the hide-now button (Alt+X) to leave and hide the chat instantly.
+
+Optional: add up to five interests and a language under "Match preferences". People who share them are matched first; after a few seconds anyone will do. "Create invite link" or a room code puts you in a private room that only people with the code can join.
+
+## Features
+
+- Text chat with formatting, emoji, reactions, replies, read receipts, typing indicator and photo sharing (photos are compressed and encrypted in the browser, and hidden on the receiving side until shown).
+- Peer-to-peer video over WebRTC with mute, camera off, device pickers, screen share, picture-in-picture and full screen. A text chat can be upgraded to video if both people agree.
+- Safety tools: report, next, leave, hide-now panic button, neutral tab title, strong-language filter, link warnings, optional blurring of the partner's video.
+- Light and dark themes, keyboard shortcuts (press ? in the app), screen-reader labels, reduced-motion support.
+- Installable as a progressive web app with an offline shell.
+
+## Privacy and security model
+
+- Text: the two browsers agree a key with ECDH (P-256) using the Web Crypto API and encrypt every message with AES-256-GCM. Sending is disabled until the key exists. Reactions, replies, photos and receipts travel inside the same encrypted envelope.
+- Key exchange is relayed, so a safety code is shown in the lock menu. If both people see the same code, nobody is in the middle.
+- Video and audio are encrypted by WebRTC (DTLS-SRTP) and flow directly between browsers. In a video call, each browser learns the other's IP address. Use a VPN if that matters.
+- Anything shown or said can be recorded by the other person. There are no moderators.
+- On the public site, matchmaking and call setup run serverless over public MQTT brokers; only encrypted text and connection setup messages pass through them.
+- The optional self-hosted Node.js server relays messages and call setup, keeps no database, and logs only short operational lines.
+- The page runs under a strict Content Security Policy and loads no third-party scripts, fonts or trackers.
+
+## Rules
+
+Treat people the way you want to be treated. No harassment, hate, sexual content involving minors, threats, spam or illegal activity. Users must be 18 or older.
+
+## FAQ
+
+**Is SecureChat free?** Yes. There is no paid tier and no ads.
+
+**Do I need an account?** No. There is nothing to sign up for.
+
+**Are chats saved?** No. Messages exist only in the two browsers for the length of the chat.
+
+**Can the server read my messages?** Text messages are encrypted before they leave your browser, so the relay only sees scrambled text. Compare the safety code with your partner to be sure.
+
+**Does it work on phones?** Yes, in any modern mobile browser. Video needs camera permission and a secure (HTTPS) connection.
+
+**Can I chat with a friend instead of a stranger?** Yes. Create an invite link or share a room code from "Match preferences and private rooms".
+
+**Can I host my own copy?** Yes. The source is MIT-licensed at https://github.com/0x0806/securechat and runs on any static host or with the included Node.js server.
+
+## Links
+
+- App: https://securechat.online/
+- Source: https://github.com/0x0806/securechat
+- Security policy: https://github.com/0x0806/securechat/blob/main/SECURITY.md
+- Security contact: https://securechat.online/.well-known/security.txt

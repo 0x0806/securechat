@@ -1,6 +1,6 @@
 {
   "name": "securechat",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "description": "Secure, Anonymous, Real-time Communication Platform",
   "main": "index.js",
   "scripts": {

@@ -267,3 +267,55 @@ test('online count is broadcast', async () => {
   assert.ok(b.connected);
   void n;
 });
+
+test('SEO and well-known files are served with the right types', async () => {
+  const cases = [
+    ['/robots.txt', /text\/plain/, /Sitemap: https:\/\/securechat\.online\/sitemap\.xml/],
+    ['/sitemap.xml', /xml/, /<loc>https:\/\/securechat\.online\/<\/loc>/],
+    ['/llms.txt', /text\/plain/, /^# SecureChat/],
+    ['/llms-full.txt', /text\/plain/, /## FAQ/],
+    ['/humans.txt', /text\/plain/, /SecureChat/],
+    ['/.well-known/security.txt', /text\/plain/, /^Contact: https:\/\/github\.com\/0x0806\/securechat\/security\/advisories\/new$/m],
+  ];
+  for (const [p, type, body] of cases) {
+    const r = await fetch(`${url}${p}`);
+    assert.equal(r.status, 200, p);
+    assert.match(r.headers.get('content-type'), type, p);
+    assert.match(await r.text(), body, p);
+  }
+  const sec = await (await fetch(`${url}/.well-known/security.txt`)).text();
+  const expires = new Date(/^Expires: (.+)$/m.exec(sec)[1]);
+  assert.ok(expires > new Date(), 'security.txt has expired; bump Expires');
+  const og = await fetch(`${url}/og-image.png`);
+  assert.equal(og.status, 200);
+  assert.match(og.headers.get('content-type'), /image\/png/);
+});
+
+test('index.html carries canonical, social and structured data', async () => {
+  const html = await (await fetch(`${url}/`)).text();
+  assert.match(html, /<link rel="canonical" href="https:\/\/securechat\.online\/">/);
+  assert.match(html, /<meta property="og:image" content="https:\/\/securechat\.online\/og-image\.png">/);
+  assert.match(html, /<meta name="twitter:card" content="summary_large_image">/);
+  const ld = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(html);
+  assert.ok(ld, 'JSON-LD block present');
+  const data = JSON.parse(ld[1]);
+  assert.ok(data['@graph'].some((n) => n['@type'] === 'WebApplication'));
+});
+
+test('security headers are set and unknown paths get the 404 page', async () => {
+  const r = await fetch(`${url}/`);
+  const h = (k) => r.headers.get(k) || '';
+  assert.match(h('content-security-policy'), /frame-ancestors 'none'/);
+  assert.match(h('content-security-policy'), /object-src 'none'/);
+  assert.match(h('strict-transport-security'), /max-age=31536000/);
+  assert.equal(h('referrer-policy'), 'no-referrer');
+  assert.equal(h('x-content-type-options'), 'nosniff');
+  assert.match(h('permissions-policy'), /geolocation=\(\)/);
+  assert.match(h('permissions-policy'), /camera=\(self\)/);
+  assert.equal(h('x-powered-by'), '');
+  const missing = await fetch(`${url}/does/not/exist`);
+  assert.equal(missing.status, 404);
+  assert.match(await missing.text(), /That page does not exist/);
+  assert.equal((await fetch(`${url}/.git/config`)).status, 404);
+  assert.equal((await fetch(`${url}/.nojekyll`)).status, 404);
+});

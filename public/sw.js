@@ -1,5 +1,5 @@
 /* SecureChat service worker: offline shell, network-first so a new deploy is never hidden behind a stale cache. */
-const CACHE = 'securechat-v3';
+const CACHE = 'securechat-v4';
 const SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'features.js', 'transport.js', 'match-rules.js', 'config.js', 'favicon.svg', 'manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {

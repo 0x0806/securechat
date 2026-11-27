@@ -1,5 +1,28 @@
 # Changelog
 
+## 3.2.0
+
+SEO, discoverability and security hardening. Tests: 31 server tests and 64 end-to-end checks pass.
+
+### Search and sharing
+- ✓ Canonical URL (`https://securechat.online/`), robots meta, and a richer title and description.
+- ✓ Open Graph and Twitter card tags with a new 1200×630 share image (`og-image.png`).
+- ✓ Structured data (JSON-LD): `WebSite` and `WebApplication` with features and a free offer.
+- ✓ `robots.txt` points to the new `sitemap.xml` and keeps the server's live endpoints out of the index.
+- ✓ `llms.txt` and `llms-full.txt`: a plain summary, privacy model and FAQ for AI assistants and agents.
+- ✓ `humans.txt`.
+- ○ The 404 page uses root-relative links, so it keeps its styles on nested paths, and is `noindex`.
+
+### Security
+- ✓ `/.well-known/security.txt` (RFC 9116) and a `SECURITY.md` policy with private advisory reporting.
+- ✓ Dependencies patched: `npm audit` now reports 0 vulnerabilities (was 5: engine.io, ws, socket.io-parser, proxy-addr).
+- ○ Dependabot for npm and GitHub Actions.
+- ○ Clickjacking guard in the client, because GitHub Pages cannot send `X-Frame-Options` or `frame-ancestors`.
+- ✓ `Referrer-Policy: no-referrer` (header and meta), so invite links' room codes never leak to other sites.
+- ✓ Node server: one-year HSTS, a stricter CSP (`frame-src`, `base-uri`, `form-action`, `manifest-src`), and a wider `Permissions-Policy` that turns off sensors, payment, USB, serial, HID, MIDI and Topics.
+- ✓ Node server answers unknown paths with the styled 404 page and never serves dotfiles except `/.well-known`.
+- ○ Danger colour darkened to meet WCAG AA contrast on its tinted background.
+
 ## 3.1.0
 
 Legend: ✓ covered by an automated test, ○ implemented but only checked by hand or by code review.

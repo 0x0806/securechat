@@ -1,0 +1,11 @@
+/* TEAM */
+Author: 0x0806
+Site: https://github.com/0x0806
+
+/* SITE */
+Name: SecureChat
+URL: https://securechat.online/
+Source: https://github.com/0x0806/securechat
+License: MIT
+Standards: HTML, CSS, JavaScript, WebRTC, Web Crypto API, MQTT over WebSocket
+Fonts: Bricolage Grotesque, Instrument Sans (SIL Open Font License)

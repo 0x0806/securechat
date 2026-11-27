@@ -5,7 +5,7 @@
 :root {
   --bg: #ebedf5; --surface: #ffffff; --surface-2: #f4f5fa; --ink: #13162e; --ink-2: #4a4f6d; --line: #d5d8e8;
   --primary: #4f35f2; --on-primary: #ffffff; --primary-soft: #e4e0ff;
-  --sun: #ffc83d; --flare: #d13a18; --flare-soft: #fde4de; --mint: #0b7f63; --mint-soft: #d6f3ea;
+  --sun: #ffc83d; --flare: #c0330f; --flare-soft: #fde4de; --mint: #0b7f63; --mint-soft: #d6f3ea;
   --shadow: 0 1px 2px rgb(19 22 46 / .06), 0 8px 24px rgb(19 22 46 / .08);
   --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
   --body: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;

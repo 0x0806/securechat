@@ -2,6 +2,14 @@
 (() => {
   'use strict';
 
+  // Clickjacking guard. Static hosts such as GitHub Pages cannot send X-Frame-Options or a
+  // frame-ancestors CSP (it is ignored in a <meta> tag), so refuse to run inside someone else's frame.
+  if (window.top !== window.self) {
+    try { window.top.location.replace(window.self.location.href); } catch { /* cross-origin or sandboxed */ }
+    document.documentElement.textContent = '';
+    return;
+  }
+
   const CFG = window.SECURECHAT_CONFIG || {};
   const CONSENT_KEY = 'securechat.consent.v1';
   const THEME_KEY = 'securechat.theme';

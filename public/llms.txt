@@ -1,0 +1,29 @@
+# SecureChat
+
+> SecureChat (https://securechat.online/) is a free web app that pairs you with a random stranger for a one-to-one text or video chat. There is no account, no sign-up and no chat history. Text messages are end-to-end encrypted between the two browsers; video and audio use WebRTC and flow directly between the browsers.
+
+Key facts:
+
+- Runs entirely in the browser. Nothing to install, though it can be installed as a progressive web app.
+- Users must be 18 or older and accept the rules before chatting.
+- Text encryption: the two browsers agree a key with each other (ECDH via the Web Crypto API) and encrypt messages with AES-GCM. The key exchange is relayed, so users can compare a safety code to rule out a man-in-the-middle.
+- Video calls reveal each participant's IP address to the other, as with any peer-to-peer WebRTC call.
+- Matching can prefer shared interests and a language. Private rooms and invite links let friends find each other.
+- On the public site (GitHub Pages) matchmaking and signalling run serverless over public MQTT brokers. It can also be self-hosted with the included Node.js/Socket.IO server, which keeps no database.
+- Open source under the MIT licence.
+
+## Use it
+
+- [SecureChat](https://securechat.online/): the app itself, start a text or video chat
+- [Longer description for AI assistants](https://securechat.online/llms-full.txt): how it works, privacy model, safety and FAQ in one file
+
+## Source and docs
+
+- [GitHub repository](https://github.com/0x0806/securechat): source code, README, self-hosting instructions
+- [Changelog](https://github.com/0x0806/securechat/blob/main/CHANGELOG.md): release notes
+- [Security policy](https://github.com/0x0806/securechat/blob/main/SECURITY.md): how to report a vulnerability
+
+## Optional
+
+- [security.txt](https://securechat.online/.well-known/security.txt): security contact (RFC 9116)
+- [Licence (MIT)](https://github.com/0x0806/securechat/blob/main/LICENSE)

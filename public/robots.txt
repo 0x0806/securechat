@@ -1,2 +1,14 @@
+# SecureChat – https://securechat.online/
+# Everything public is crawlable. There are no private pages: chats happen
+# peer-to-peer and are never stored, so nothing here can expose a conversation.
+
 User-agent: *
 Allow: /
+# Live endpoints of the optional Node server: no content, nothing to index.
+Disallow: /api/
+Disallow: /socket.io/
+Disallow: /health
+
+# Search and AI assistants are welcome. A short machine-readable summary lives at /llms.txt.
+
+Sitemap: https://securechat.online/sitemap.xml

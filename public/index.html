@@ -3,20 +3,81 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>SecureChat – anonymous video and text chat</title>
-  <meta name="description" content="Chat with a random stranger by text or video. No account, no history. Text messages are end-to-end encrypted between the two browsers.">
+  <title>SecureChat – anonymous video and text chat with strangers</title>
+  <meta name="description" content="Chat with a random stranger by text or video. No account, no sign-up, no history. Text messages are end-to-end encrypted between the two browsers.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <meta name="referrer" content="no-referrer">
+  <link rel="canonical" href="https://securechat.online/">
+  <meta name="application-name" content="SecureChat">
+  <meta name="author" content="0x0806">
   <meta name="theme-color" content="#EBEDF5" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0E1125" media="(prefers-color-scheme: dark)">
   <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SecureChat">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:url" content="https://securechat.online/">
   <meta property="og:title" content="SecureChat – anonymous video and text chat">
-  <meta property="og:description" content="Random text and video chat with no account and no history.">
+  <meta property="og:description" content="Random text and video chat with no account and no history. Text is end-to-end encrypted between the two browsers.">
+  <meta property="og:image" content="https://securechat.online/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:alt" content="SecureChat: Meet someone new. No account, no history.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="SecureChat – anonymous video and text chat">
+  <meta name="twitter:description" content="Random text and video chat with no account and no history.">
+  <meta name="twitter:image" content="https://securechat.online/og-image.png">
+  <meta name="twitter:image:alt" content="SecureChat: Meet someone new. No account, no history.">
+  <link rel="alternate" type="text/markdown" href="llms.txt" title="LLM-readable summary">
+  <link rel="author" href="humans.txt" type="text/plain">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://securechat.online/#website",
+        "url": "https://securechat.online/",
+        "name": "SecureChat",
+        "description": "Anonymous random text and video chat with no account and no history.",
+        "inLanguage": "en"
+      },
+      {
+        "@type": "WebApplication",
+        "@id": "https://securechat.online/#app",
+        "name": "SecureChat",
+        "url": "https://securechat.online/",
+        "description": "Chat with a random stranger by text or video. No account, no history. Text messages are end-to-end encrypted between the two browsers; video and audio use WebRTC.",
+        "applicationCategory": "CommunicationApplication",
+        "operatingSystem": "Any (modern web browser)",
+        "browserRequirements": "Requires JavaScript. Video chat needs WebRTC and camera access.",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "image": "https://securechat.online/og-image.png",
+        "screenshot": "https://securechat.online/og-image.png",
+        "featureList": [
+          "Random one-to-one text chat",
+          "Random one-to-one video chat over WebRTC",
+          "End-to-end encrypted text messages with a verifiable safety code",
+          "No account, sign-up or chat history",
+          "Interest and language matching",
+          "Private rooms and invite links for friends",
+          "Installable progressive web app"
+        ],
+        "author": { "@type": "Person", "name": "0x0806", "url": "https://github.com/0x0806" },
+        "sameAs": ["https://github.com/0x0806/securechat"],
+        "isPartOf": { "@id": "https://securechat.online/#website" }
+      }
+    ]
+  }
+  </script>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <meta name="color-scheme" content="light dark">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="preload" href="fonts/bricolage-grotesque-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' ws: wss: https:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' ws: wss: https:; worker-src 'self' blob:; manifest-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
